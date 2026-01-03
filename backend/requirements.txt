@@ -7,4 +7,5 @@ faiss-cpu
 python-dotenv
 langchain-ollama
 langchain_community
-
+pytesseract
+pillow
