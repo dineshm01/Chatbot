@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 
+
 function App() {
   const [question, setQuestion] = useState("");
   const [mode, setMode] = useState("Detailed");
@@ -11,6 +12,8 @@ function App() {
   const [showHistoryPanel, setShowHistoryPanel] = useState(false);
   const [historyItems, setHistoryItems] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const API = process.env.REACT_APP_API_URL;
+  console.log("API:", API);
   useEffect(() => {
   chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
 }, [messages]);
@@ -27,7 +30,7 @@ async function uploadFile(e) {
 
   setUploading(true);
   try {
-    const res = await fetch("http://127.0.0.1:5000/api/upload", {
+    const res = await fetch(`${API}/api/upload`, {
       method: "POST",
       body: formData
     });
@@ -43,7 +46,7 @@ async function uploadFile(e) {
 
 
 async function loadHistoryItem(q) {
-  const res = await fetch(`http://127.0.0.1:5000/api/history/${encodeURIComponent(q)}`);
+  const res = await fetch(`${API}/api/history/${encodeURIComponent(q)}`);
   const data = await res.json();
 
   setMessages([
@@ -60,14 +63,14 @@ async function loadHistoryItem(q) {
 }
 
 async function loadHistoryPanel() {
-  const res = await fetch("http://127.0.0.1:5000/api/history");
+  const res = await fetch(`${API}/api/history`);
   const data = await res.json();
   setHistoryItems(data);
   setShowHistoryPanel(true);
 }
   
 async function showHistory() {
-    const res = await fetch("http://127.0.0.1:5000/api/history");
+    const res = await fetch(`${API}/api/history`);
     const data = await res.json();
 
     const msgs = [];
@@ -96,7 +99,7 @@ async function ask() {
   try {
     const memory = messages.slice(-6);
 
-    const res = await fetch("http://127.0.0.1:5000/api/ask", {
+    const res = await fetch(`${API}/api/ask`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question, mode, memory })
