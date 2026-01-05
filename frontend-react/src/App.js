@@ -5,7 +5,6 @@ import ReactMarkdown from "react-markdown";
 function App() {
   const [question, setQuestion] = useState("");
   const [mode, setMode] = useState("Detailed");
-  const [answer, setAnswer] = useState(null);
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState([]);
   const chatEndRef = useRef(null);
@@ -69,23 +68,6 @@ async function loadHistoryPanel() {
   setShowHistoryPanel(true);
 }
   
-async function showHistory() {
-    const res = await fetch(`${API}/api/history`);
-    const data = await res.json();
-
-    const msgs = [];
-    data.reverse().forEach(item => {
-      msgs.push({ role: "user", text: item.question });
-      msgs.push({
-        role: "bot",
-        text: item.text,
-        confidence: item.confidence,
-        coverage: item.coverage
-      });
-    });
-
-    setMessages(msgs);
-}
 
 async function ask() {
   if (!question.trim() || loading) return;
