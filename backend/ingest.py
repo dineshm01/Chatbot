@@ -35,7 +35,8 @@ def ingest_document(filepath: str):
     if not vectors:
         raise RuntimeError("No embeddings generated")
 
-    vectorstore = FAISS.from_documents(chunks, embeddings)
+    vectorstore = FAISS.from_texts([c.page_content for c in chunks], embeddings)
     vectorstore.save_local(VECTOR_DIR)
 
     print("INGEST: vectorstore saved")
+
