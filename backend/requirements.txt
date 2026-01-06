@@ -1,22 +1,20 @@
-flask
-flask-cors
-pymongo
-python-dotenv
+flask==3.1.1
+flask-cors==6.0.1
+pymongo==4.15.4
+python-dotenv==1.2.1
 
 langchain==0.2.6
 langchain-community==0.2.6
-langchain-core>=0.2.10,<0.3.0
-langchain-text-splitters
+langchain-core==0.2.43
 
-faiss-cpu
-langchain-huggingface>=1.2.0
-huggingface-hub
+faiss-cpu==1.13.1
 
-python-pptx
-pymupdf
-docx2txt
-pillow
-pytesseract
+huggingface-hub==0.36.0
+
+python-pptx==1.0.2
+pymupdf==1.26.7
+docx2txt==0.9
+pillow==12.1.0
+pytesseract==0.3.13
 
 unstructured[pptx]==0.18.26
-
