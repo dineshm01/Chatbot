@@ -9,3 +9,7 @@ langchain-ollama
 langchain_community
 pytesseract
 pillow
+unstructured
+unstructured[pptx]
+python-pptx
+
