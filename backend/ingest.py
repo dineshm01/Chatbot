@@ -13,12 +13,23 @@ def ingest_document(file_path):
     )
     chunks = splitter.split_documents(docs)
 
-    embeddings = HuggingFaceInferenceAPIEmbeddings(
+    texts = [c.page_content for c in chunks]
+
+    embeddings_client = HuggingFaceInferenceAPIEmbeddings(
         api_key=os.getenv("HF_API_KEY"),
         model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
 
-    vectorstore = FAISS.from_documents(chunks, embeddings)
-    vectorstore.save_local("faiss_index")
+    embeddings = embeddings_client.embed_documents(texts)
 
+    if not embeddings or len(embeddings) == 0:
+        raise RuntimeError("HuggingFace returned empty embeddings — check HF_API_KEY or model availability")
+
+    vectorstore = FAISS.from_embeddings(
+        texts=texts,
+        embeddings=embeddings,
+        metadatas=[c.metadata for c in chunks]
+    )
+
+    vectorstore.save_local("faiss_index")
     return True
