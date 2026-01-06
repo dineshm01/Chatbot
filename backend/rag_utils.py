@@ -19,11 +19,17 @@ from utils.retriever import create_vectorstore
 from utils.loaders import load_file
 from langchain_community.vectorstores import FAISS
 
-
 VECTOR_DIR = "vectorstore"
 
 def load_vectorstore():
-    return FAISS.load_local(VECTOR_DIR, get_embeddings(), allow_dangerous_deserialization=True)
+    if not (VECTOR_DIR and os.path.exists(VECTOR_DIR)):
+        raise RuntimeError("Vectorstore does not exist. Upload a file first.")
+
+    return FAISS.load_local(
+        VECTOR_DIR,
+        get_embeddings(),
+        allow_dangerous_deserialization=True
+    )
 
 def get_retriever():
     embeddings = get_embeddings()
@@ -62,4 +68,5 @@ def compute_coverage(docs, max_chars=1200):
         return 0
     total_chars = sum(len(d.page_content) for d in docs)
     return min(100, int((total_chars / max_chars) * 100))
+
 
