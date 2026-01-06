@@ -3,6 +3,7 @@ from langchain_community.vectorstores import FAISS
 from utils.loaders import load_file
 from utils.embeddings import get_embeddings
 
+
 def ingest_document(file_path: str):
     print("INGEST: file =", file_path)
 
@@ -20,15 +21,14 @@ def ingest_document(file_path: str):
     embeddings = get_embeddings()
 
     vectors = []
-    for i, c in enumerate(chunks):
+    for c in chunks:
         v = embeddings.embed_query(c.page_content)
         vectors.append(v)
 
     print("INGEST: vectors =", len(vectors))
 
-    # Do NOT raise ValueError("0") here anymore
     if len(vectors) != len(chunks):
-        print("WARNING: vector count mismatch, continuing anyway")
+        print("WARNING: vector count mismatch")
 
     vectorstore = FAISS.from_documents(chunks, embeddings)
     vectorstore.save_local("faiss_index")
