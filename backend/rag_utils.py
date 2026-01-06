@@ -35,7 +35,8 @@ def get_retriever():
     embeddings = get_embeddings()
 
     if not os.path.exists("vectorstore/index.faiss"):
-        return None
+        raise RuntimeError("Vectorstore missing. Upload a document first.")
+
 
     vectorstore = FAISS.load_local(
         "vectorstore",
@@ -68,5 +69,6 @@ def compute_coverage(docs, max_chars=1200):
         return 0
     total_chars = sum(len(d.page_content) for d in docs)
     return min(100, int((total_chars / max_chars) * 100))
+
 
 
