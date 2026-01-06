@@ -1,35 +1,41 @@
-from langchain_community.vectorstores import FAISS
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
-from utils.loaders import load_file
 import os
+from langchain_community.vectorstores import FAISS
+from utils.embeddings import get_embeddings
+from utils.loaders import load_file
+from utils.splitter import split_documents
 
-def ingest_document(file_path):
-    docs = load_file(file_path)
+INDEX_DIR = "faiss_index"
 
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=150
-    )
-    chunks = splitter.split_documents(docs)
 
-    texts = [c.page_content for c in chunks]
+def ingest_document(filepath: str):
+    """
+    Loads a file, splits it into chunks, embeds them and stores into FAISS.
+    """
 
-    embeddings_client = HuggingFaceInferenceAPIEmbeddings(
-        api_key=os.getenv("HF_API_KEY"),
-        model_name="sentence-transformers/all-MiniLM-L6-v2"
-    )
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"File not found: {filepath}")
 
-    embeddings = embeddings_client.embed_documents(texts)
+    # 1. Load document
+    docs = load_file(filepath)
+    if not docs:
+        raise ValueError("No content loaded from document")
 
-    if not embeddings or len(embeddings) == 0:
-        raise RuntimeError("HuggingFace returned empty embeddings — check HF_API_KEY or model availability")
+    # 2. Split into chunks
+    chunks = split_documents(docs)
+    if not chunks:
+        raise ValueError("No chunks created from document")
 
-    vectorstore = FAISS.from_embeddings(
-        texts=texts,
-        embeddings=embeddings,
-        metadatas=[c.metadata for c in chunks]
-    )
+    # 3. Get embeddings (lazy loaded)
+    embeddings = get_embeddings()
 
-    vectorstore.save_local("faiss_index")
-    return True
+    # 4. Create / update FAISS index
+    if os.path.exists(INDEX_DIR):
+        vectorstore = FAISS.load_local(INDEX_DIR, embeddings, allow_dangerous_deserialization=True)
+        vectorstore.add_documents(chunks)
+    else:
+        vectorstore = FAISS.from_documents(chunks, embeddings)
+
+    # 5. Save index
+    vectorstore.save_local(INDEX_DIR)
+
+    return {"status": "ok", "chunks": len(chunks)}
