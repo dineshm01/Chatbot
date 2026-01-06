@@ -83,29 +83,24 @@ def get_history_item(question):
 
 @app.route("/api/upload", methods=["POST"])
 def upload_file():
+    if "file" not in request.files:
+        return jsonify({"error": "No file"}), 400
+
+    file = request.files["file"]
+    filename = secure_filename(file.filename)
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    file.save(filepath)
+
     try:
-        if "file" not in request.files:
-            return jsonify({"error": "No file part"}), 400
-
-        file = request.files["file"]
-        if file.filename == "":
-            return jsonify({"error": "No selected file"}), 400
-
-        filename = secure_filename(file.filename)
-        filepath = os.path.join(UPLOAD_FOLDER, filename)
-        file.save(filepath)
-
         ingest_document(filepath)
-
-        return jsonify({"message": "File uploaded and ingested successfully"})
-
+        return jsonify({"message": "Uploaded"}), 200
     except Exception as e:
-        print("Upload/Ingest error:", repr(e))
         return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
