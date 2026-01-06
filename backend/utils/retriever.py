@@ -1,4 +1,7 @@
 from langchain_community.vectorstores import FAISS
+from utils.embeddings import get_embeddings
 
-def create_vectorstore(docs, embeddings):
-    return FAISS.from_documents(docs, embeddings)
+VECTOR_DIR = "vectorstore"
+
+def load_vectorstore():
+    return FAISS.load_local(VECTOR_DIR, get_embeddings(), allow_dangerous_deserialization=True)
