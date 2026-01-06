@@ -1,9 +1,12 @@
-from langchain_community.embeddings import HuggingFaceEmbeddings
+import os
+from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from utils.loaders import load_file
 
-embeddings = HuggingFaceEmbeddings(
+# Create embeddings using HuggingFace Inference API
+embeddings = HuggingFaceInferenceAPIEmbeddings(
+    api_key=os.getenv("HF_API_KEY"),
     model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
 
