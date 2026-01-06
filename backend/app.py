@@ -15,9 +15,14 @@ app = Flask(__name__)
 CORS(app)
 
 MONGO_URI = os.getenv("MONGO_URI")
+print("DEBUG MONGO_URI =", MONGO_URI)
+
+if not MONGO_URI:
+    raise RuntimeError("MONGO_URI env variable missing")
 
 client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-client.admin.command("ping")  # test connection
+client.admin.command("ping")
+print("MongoDB connected successfully")
 
 db = client["chatbot"]
 
@@ -100,6 +105,7 @@ def upload_file():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
