@@ -96,7 +96,7 @@ def upload_file():
 
     try:
         ingest_document(filepath)
-        return jsonify({"status": "ok"})
+        return jsonify({"message": "File uploaded and ingested successfully"})
     except Exception as e:
         print("Upload/Ingest error:", e)
         return jsonify({"error": str(e)}), 500
@@ -104,6 +104,7 @@ def upload_file():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
