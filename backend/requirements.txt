@@ -16,7 +16,8 @@ python-dotenv
 python-pptx
 pymupdf
 docx2txt
-unstructured
+unstructured[pptx]
 
 pytesseract
 pillow
+
