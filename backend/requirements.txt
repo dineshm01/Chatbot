@@ -10,3 +10,5 @@ pymupdf
 pytesseract
 pillow
 huggingface-hub
+langchain-huggingface>=0.0.6
+
