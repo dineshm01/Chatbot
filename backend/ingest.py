@@ -1,41 +1,34 @@
-import os
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
-from utils.embeddings import get_embeddings
 from utils.loaders import load_file
-from utils.splitter import split_documents
-
-INDEX_DIR = "faiss_index"
+from utils.embeddings import get_embeddings
 
 
-def ingest_document(filepath: str):
-    """
-    Loads a file, splits it into chunks, embeds them and stores into FAISS.
-    """
+def ingest_document(file_path: str):
+    print("INGEST: file =", file_path)
 
-    if not os.path.exists(filepath):
-        raise FileNotFoundError(f"File not found: {filepath}")
+    docs = load_file(file_path)
+    print("INGEST: docs =", len(docs) if docs else docs)
 
-    # 1. Load document
-    docs = load_file(filepath)
     if not docs:
-        raise ValueError("No content loaded from document")
+        raise ValueError("0")
 
-    # 2. Split into chunks
-    chunks = split_documents(docs)
+    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
+    chunks = splitter.split_documents(docs)
+    print("INGEST: chunks =", len(chunks))
+
     if not chunks:
-        raise ValueError("No chunks created from document")
+        raise ValueError("0")
 
-    # 3. Get embeddings (lazy loaded)
     embeddings = get_embeddings()
+    vectors = embeddings.embed_documents([c.page_content for c in chunks])
+    print("INGEST: vectors =", len(vectors))
 
-    # 4. Create / update FAISS index
-    if os.path.exists(INDEX_DIR):
-        vectorstore = FAISS.load_local(INDEX_DIR, embeddings, allow_dangerous_deserialization=True)
-        vectorstore.add_documents(chunks)
-    else:
-        vectorstore = FAISS.from_documents(chunks, embeddings)
+    if not vectors:
+        raise ValueError("0")
 
-    # 5. Save index
-    vectorstore.save_local(INDEX_DIR)
+    vectorstore = FAISS.from_documents(chunks, embeddings)
+    vectorstore.save_local("faiss_index")
 
-    return {"status": "ok", "chunks": len(chunks)}
+    print("INGEST: done")
+    return True
