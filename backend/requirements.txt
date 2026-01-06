@@ -5,8 +5,7 @@ pymongo
 langchain==0.2.6
 langchain-community==0.2.6
 langchain-core>=0.2.10,<0.3.0
-langchain-text-splitters>=1.0.0
-langchain-huggingface>=1.2.0
+langchain-text-splitters
 
 faiss-cpu
 huggingface-hub
@@ -20,4 +19,3 @@ unstructured[pptx]
 
 pytesseract
 pillow
-
