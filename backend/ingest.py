@@ -1,37 +1,37 @@
-import logging
+import os
 from langchain_community.vectorstores import FAISS
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from utils.loaders import load_file
+from langchain_community.document_loaders import PyMuPDFLoader, UnstructuredPowerPointLoader
 from utils.embeddings import get_embeddings
 
-logger = logging.getLogger(__name__)
+VECTOR_DIR = "vectorstore"
+os.makedirs(VECTOR_DIR, exist_ok=True)
 
-def ingest_document(file_path: str):
-    try:
-        logger.info(f"INGEST: file = {file_path}")
+def ingest_document(filepath: str):
+    print(f"INGEST: file = {filepath}")
 
-        docs = load_file(file_path)
-        logger.info(f"INGEST: docs = {len(docs)}")
+    # Load file
+    if filepath.lower().endswith(".pdf"):
+        loader = PyMuPDFLoader(filepath)
+    elif filepath.lower().endswith(".pptx"):
+        loader = UnstructuredPowerPointLoader(filepath)
+    else:
+        raise ValueError("Unsupported file type")
 
-        splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
-        chunks = splitter.split_documents(docs)
-        logger.info(f"INGEST: chunks = {len(chunks)}")
+    docs = loader.load()
+    print(f"INGEST: docs = {len(docs)}")
 
-        embedder = get_embeddings()
+    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=100)
+    chunks = splitter.split_documents(docs)
+    print(f"INGEST: chunks = {len(chunks)}")
 
-        # 👇 Important: manually embed text
-        texts = [c.page_content for c in chunks]
-        metadatas = [c.metadata for c in chunks]
+    if not chunks:
+        raise ValueError("No chunks created")
 
-        vectors = embedder.embed_documents(texts)
-        logger.info(f"INGEST: vectors = {len(vectors)}")
+    embeddings = get_embeddings()
 
-        vectorstore = FAISS.from_embeddings(vectors, texts, metadatas=metadatas)
-        vectorstore.save_local("faiss_index")
+    vectorstore = FAISS.from_documents(chunks, embeddings)
 
-        logger.info("INGEST: done successfully")
-        return True
+    vectorstore.save_local(VECTOR_DIR)
 
-    except Exception as e:
-        logger.error(f"Upload/Ingest error: {repr(e)}")
-        raise
+    print("INGEST: vectors saved")
