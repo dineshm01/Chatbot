@@ -1,5 +1,5 @@
 from langchain_community.vectorstores import FAISS
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from utils.loaders import load_file
 from utils.embeddings import get_embeddings
 
@@ -17,3 +17,4 @@ def ingest_document(file_path):
     vectorstore.save_local("faiss_index")
 
     return True
+
