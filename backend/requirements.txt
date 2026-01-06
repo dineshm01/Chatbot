@@ -12,4 +12,6 @@ pillow
 unstructured
 unstructured[pptx]
 python-pptx
+pymupdf
+
 
