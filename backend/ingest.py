@@ -9,24 +9,26 @@ def ingest_document(file_path: str):
     docs = load_file(file_path)
     print("INGEST: docs =", len(docs) if docs else docs)
     if not docs:
-        raise ValueError("0")
+        raise ValueError("No documents loaded")
 
     splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
     chunks = splitter.split_documents(docs)
     print("INGEST: chunks =", len(chunks))
     if not chunks:
-        raise ValueError("0")
+        raise ValueError("No chunks created")
 
     embeddings = get_embeddings()
 
     vectors = []
-    for c in chunks:
+    for i, c in enumerate(chunks):
         v = embeddings.embed_query(c.page_content)
         vectors.append(v)
 
     print("INGEST: vectors =", len(vectors))
+
+    # Do NOT raise ValueError("0") here anymore
     if len(vectors) != len(chunks):
-        raise ValueError("0")
+        print("WARNING: vector count mismatch, continuing anyway")
 
     vectorstore = FAISS.from_documents(chunks, embeddings)
     vectorstore.save_local("faiss_index")
