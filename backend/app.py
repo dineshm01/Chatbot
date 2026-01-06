@@ -14,15 +14,12 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app = Flask(__name__)
 CORS(app)
 
-MONGO_URI = os.environ["MONGO_URI"]
-print("Connecting to Mongo:", MONGO_URI.replace(MONGO_URI.split(":")[2].split("@")[0], "***"))
+MONGO_URI = os.getenv("MONGODB_URI")
 
 client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-client.admin.command("ping")  # force connection test
+client.admin.command("ping")  # test connection
 
 db = client["chatbot"]
-queries = db["queries"]
-
 
 @app.route("/")
 def home():
@@ -103,5 +100,6 @@ def upload_file():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
