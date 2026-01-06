@@ -13,5 +13,5 @@ unstructured
 unstructured[pptx]
 python-pptx
 pymupdf
-
-
+sentence-transformers
+torch
