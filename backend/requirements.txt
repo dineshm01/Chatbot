@@ -9,6 +9,7 @@ langchain-core>=0.2.10,<0.3.0
 langchain-text-splitters
 
 faiss-cpu
+langchain-huggingface>=1.2.0
 huggingface-hub
 
 python-pptx
@@ -18,3 +19,4 @@ pillow
 pytesseract
 
 unstructured[pptx]==0.18.26
+
