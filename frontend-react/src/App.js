@@ -12,7 +12,9 @@ function App() {
   const [historyItems, setHistoryItems] = useState([]);
   const [uploading, setUploading] = useState(false);
   const API = process.env.REACT_APP_API_URL;
-  console.log("API:", API);
+  if (!API) {
+  console.error("REACT_APP_API_URL is not defined");
+}
   useEffect(() => {
   chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
 }, [messages]);
@@ -34,10 +36,18 @@ async function uploadFile(e) {
       body: formData
     });
 
-    const data = await res.json();
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      throw new Error("Invalid server response");
+    }
+    if (!res.ok) {
+      throw new Error(data.error || "Upload failed");
+    }
     alert(data.message || "Uploaded");
   } catch (err) {
-    alert("Upload failed");
+    alert("Upload failed");  
   } finally {
     setUploading(false);
   }
@@ -87,7 +97,16 @@ async function ask() {
       body: JSON.stringify({ question, mode, memory })
     });
 
-    const data = await res.json();
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      throw new Error("Invalid server response");
+    }
+    if (!res.ok) {
+      throw new Error(data.error || "Server error");
+    }
+
 
     const botMessage = {
       role: "bot",
@@ -98,12 +117,13 @@ async function ask() {
 
     setMessages(prev => [...prev, botMessage]);
   } catch (err) {
-    console.error(err);
-    setMessages(prev => [
-      ...prev,
-      { role: "bot", text: "⚠️ Error contacting server." }
-    ]);
-  } finally {
+      console.error(err);
+      setMessages(prev => [
+        ...prev,
+        { role: "bot", text: `⚠️ ${err.message || "Error contacting server."}` }
+      ]);
+  }
+ finally {
     setLoading(false);
   }
 }
@@ -172,7 +192,7 @@ function handleKeyDown(e) {
 
         <button
           onClick={ask} 
-          disabled={loading}
+          disabled={loading || uploading}
           style={{
             padding: "10px 20px",
             fontSize: "15px",
