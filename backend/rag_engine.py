@@ -1,4 +1,4 @@
-from langchain_groq import ChatGroq
+from langchain_community.llms import HuggingFaceHub
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 
@@ -36,7 +36,10 @@ def generate_answer(question, mode, memory=None):
         }
 
 
-    llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0)
+    llm = HuggingFaceHub(
+        repo_id="google/flan-t5-base",
+        model_kwargs={"temperature": 0.2, "max_length": 512}
+    )
 
     prompt = ChatPromptTemplate.from_template(
     """
@@ -122,3 +125,4 @@ def generate_answer(question, mode, memory=None):
         "coverage": compute_coverage(docs),
         "sources": sources
     }
+
