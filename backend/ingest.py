@@ -1,11 +1,16 @@
+from utils.embeddings import embed_texts
 from langchain_community.vectorstores import FAISS
-from utils.embeddings import get_embeddings
+from langchain.schema import Document
 
 def ingest_document(filepath):
     docs = load_file(filepath)
-    chunks = split_docs(docs)
+    texts = [d.page_content for d in docs if d.page_content.strip()]
+    metadatas = [d.metadata for d in docs if d.page_content.strip()]
 
-    embeddings = get_embeddings()
+    vectors = embed_texts(texts)
 
-    vectorstore = FAISS.from_documents(chunks, embeddings)
-    vectorstore.save_local(VECTOR_DIR)
+    vectorstore = FAISS.from_embeddings(
+        text_embeddings=list(zip(texts, vectors)),
+        metadatas=metadatas
+    )
+    vectorstore.save_local("vectorstore")
