@@ -8,8 +8,8 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
         return []
 
     return client.feature_extraction(
-        model="sentence-transformers/all-MiniLM-L6-v2",
-        inputs=texts
+        "sentence-transformers/all-MiniLM-L6-v2",
+        texts
     )
 
 def get_embeddings():
