@@ -1,8 +1,5 @@
 from huggingface_hub import InferenceClient
 import os
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough
-
 from rag_utils import (
     load_vectorstore,
     get_retriever,
@@ -14,15 +11,13 @@ from rag_utils import (
 def generate_answer(question, mode, memory=None):
     memory = memory or []
 
-    vectorstore = load_vectorstore()
-    retriever = get_retriever() if vectorstore else None
+    retriever = get_retriever()
     docs = retriever.invoke(question) if retriever else []
 
-    filtered_docs = []
-    for d in docs:
-        if d.metadata.get("type") == "image" and d.metadata.get("ocr_confidence", 0) < 0.5:
-            continue
-        filtered_docs.append(d)
+    filtered_docs = [
+        d for d in docs
+        if not (d.metadata.get("type") == "image" and d.metadata.get("ocr_confidence", 0) < 0.5)
+    ]
 
     context_text = "" if mode == "Diagram" else truncate_docs(filtered_docs)
 
@@ -40,40 +35,7 @@ def generate_answer(question, mode, memory=None):
 Conversation so far:
 {memory_text}
 
-You must follow the rules for the selected answer style.
-
-If the selected style is "Concise":
-- Max 2 sentences
-- Direct definition only
-
-If the selected style is "Detailed":
-- Start with definition
-- Explain step-by-step
-- Teacher style
-
-If the selected style is "Exam":
-- Bullet points only
-- 2–5 mark answer
-- No explanations
-
-If the selected style is "ELI5":
-- Very simple language
-- Friendly tone
-- No jargon
-
-If the selected style is "Compare":
-- Markdown table ONLY
-- First column: Aspect
-- Compare at least two concepts
-- No text outside table
-
-If the selected style is "Diagram":
-- Explain the diagram step-by-step
-- Use clear headings
-- Explain flow and relationships only as shown
-- Do NOT infer complexity or theory
-
-Selected style: {mode}
+Style: {mode}
 
 Reference:
 {context_text}
@@ -84,17 +46,16 @@ Question:
 Answer:
 """
 
-    client = InferenceClient(
+    client = InferenceClient(token=os.getenv("HF_API_KEY"))
+
+    response = client.chat_completion(
         model="mistralai/Mistral-7B-Instruct-v0.2",
-        token=os.getenv("HF_API_KEY")
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=512,
+        temperature=0.3
     )
 
-    answer = client.text_generation(
-        prompt,
-        max_new_tokens=512,
-        temperature=0.3,
-        do_sample=False
-    )
+    answer = response.choices[0].message.content
 
     sources = [
         {"source": d.metadata.get("source"), "page": d.metadata.get("page")}
@@ -107,7 +68,3 @@ Answer:
         "coverage": compute_coverage(docs),
         "sources": sources
     }
-
-
-
-
