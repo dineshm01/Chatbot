@@ -22,9 +22,9 @@ from langchain_community.vectorstores import FAISS
 VECTOR_DIR = "vectorstore"
 
 def load_vectorstore():
-    index_path = os.path.join(VECTOR_DIR, "index.faiss")
-    if not os.path.exists(index_path):
+    if not os.path.exists(os.path.join(VECTOR_DIR, "index.faiss")):
         raise RuntimeError("Vectorstore not found. Upload a file first.")
+
     return FAISS.load_local(
         VECTOR_DIR,
         get_embeddings(),
@@ -69,6 +69,7 @@ def compute_coverage(docs, max_chars=1200):
         return 0
     total_chars = sum(len(d.page_content) for d in docs)
     return min(100, int((total_chars / max_chars) * 100))
+
 
 
 
