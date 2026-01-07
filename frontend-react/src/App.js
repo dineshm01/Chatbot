@@ -337,5 +337,3 @@ function handleKeyDown(e) {
 }
 
 export default App;
-
-this is my complete app.js if anything present unecessarily fix it and replace it
