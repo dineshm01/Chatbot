@@ -26,8 +26,10 @@ def ingest_document(filepath):
     )
 
     chunks = splitter.split_documents(docs)
+    # Remove empty chunks
+    chunks = [c for c in chunks if c.page_content and c.page_content.strip()]
+    print("DEBUG non-empty chunks:", len(chunks))
 
-    print("DEBUG chunks:", len(chunks))
 
     if not chunks:
         raise RuntimeError("No chunks created")
@@ -40,6 +42,7 @@ def ingest_document(filepath):
     
     print("DEBUG vectorstore saved at:", VECTOR_DIR)
     print("Saved files:", os.listdir(VECTOR_DIR))
+
 
 
 
