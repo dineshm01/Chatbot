@@ -13,12 +13,10 @@ from rag_utils import (
 
 def generate_answer(question, mode, memory=None):
     memory = memory or []
+
     vectorstore = load_vectorstore()
-    if vectorstore is None:
-        docs = []
-    else:
-        retriever = get_retriever()
-        docs = retriever.invoke(question) if retriever else []
+    retriever = get_retriever() if vectorstore else None
+    docs = retriever.invoke(question) if retriever else []
 
     filtered_docs = []
     for d in docs:
@@ -27,7 +25,7 @@ def generate_answer(question, mode, memory=None):
         filtered_docs.append(d)
 
     context_text = "" if mode == "Diagram" else truncate_docs(filtered_docs)
-    
+
     if not filtered_docs and not memory:
         return {
             "text": "I couldn't find this in the uploaded documents. Please try rephrasing or upload relevant material.",
@@ -36,93 +34,80 @@ def generate_answer(question, mode, memory=None):
             "sources": []
         }
 
+    memory_text = "\n".join(f"{m['role']}: {m['text']}" for m in memory)
 
-    client = InferenceClient(token=os.getenv("HF_API_KEY"))
+    prompt = f"""
+Conversation so far:
+{memory_text}
 
-    prompt = ChatPromptTemplate.from_template(
-    """
-    
-    Conversation so far:
-    {memory}
+You must follow the rules for the selected answer style.
 
-    You must follow the rules for the selected answer style.
+If the selected style is "Concise":
+- Max 2 sentences
+- Direct definition only
 
-    If the selected style is "Concise":
-    - Max 2 sentences
-    - Direct definition only
+If the selected style is "Detailed":
+- Start with definition
+- Explain step-by-step
+- Teacher style
 
-    If the selected style is "Detailed":
-    - Start with definition
-    - Explain step-by-step
-    - Teacher style
+If the selected style is "Exam":
+- Bullet points only
+- 2–5 mark answer
+- No explanations
 
-    If the selected style is "Exam":
-    - Bullet points only
-    - 2–5 mark answer
-    - No explanations
+If the selected style is "ELI5":
+- Very simple language
+- Friendly tone
+- No jargon
 
-    If the selected style is "ELI5":
-    - Very simple language
-    - Friendly tone
-    - No jargon
+If the selected style is "Compare":
+- Markdown table ONLY
+- First column: Aspect
+- Compare at least two concepts
+- No text outside table
 
-    If the selected style is "Compare":
-    - Markdown table ONLY
-    - First column: Aspect
-    - Compare at least two concepts
-    - No text outside table
+If the selected style is "Diagram":
+- Explain the diagram step-by-step
+- Use clear headings
+- Explain flow and relationships only as shown
+- Do NOT infer complexity or theory
 
-    If the selected style is "Diagram":
-    - Explain the diagram step-by-step
-    - Use clear headings
-    - Explain flow and relationships only as shown
-    - Do NOT infer complexity, performance, or internal behavior
-    - Do NOT add theory not shown in the diagram
-    - Student-friendly explanation
+Selected style: {mode}
 
-    Selected style: {mode}
+Reference:
+{context_text}
 
-    Reference:
-    {context}
+Question:
+{question}
 
-    Question:
-    {question}
+Answer:
+"""
 
-    Answer:
-    """
-    )
-    memory_text = ""
-    for m in memory:
-        memory_text += f"{m['role']}: {m['text']}\n"
-
-
-    chain = (
-        {
-            "context": lambda _: context_text,
-            "question": RunnablePassthrough(),
-            "mode": lambda _: mode,
-            "memory": lambda _: memory_text
-        }
-        | prompt
-        | llm
+    client = InferenceClient(
+        model="mistralai/Mistral-7B-Instruct-v0.2",
+        token=os.getenv("HF_API_KEY")
     )
 
-    answer = chain.invoke(question).content
-    
-    sources = []
-    for d in filtered_docs[:3]:
-        sources.append({
-            "source": d.metadata.get("source"),
-            "page": d.metadata.get("page")
-        })
+    answer = client.text_generation(
+        prompt,
+        max_new_tokens=512,
+        temperature=0.3,
+        do_sample=False
+    )
 
+    sources = [
+        {"source": d.metadata.get("source"), "page": d.metadata.get("page")}
+        for d in filtered_docs[:3]
+    ]
 
     return {
-        "text": answer,
+        "text": answer.strip(),
         "confidence": compute_confidence(docs),
         "coverage": compute_coverage(docs),
         "sources": sources
     }
+
 
 
 
