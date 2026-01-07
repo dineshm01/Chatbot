@@ -35,7 +35,6 @@ def ask():
     if not q:
         return jsonify({"error": "Question is required"}), 400
 
-    # 👋 Greeting shortcut
     greetings = {"hi", "hello", "hey", "hai", "hii"}
     if q.lower() in greetings:
         return jsonify({
@@ -44,24 +43,29 @@ def ask():
             "coverage": 0
         })
 
-    result = generate_answer(q, mode, memory)
-
+    try:
+        result = generate_answer(q, mode, memory)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
     record = {
         "question": q,
         "mode": mode,
-        "text": result["text"],
-        "confidence": result["confidence"],
-        "coverage": result["coverage"],
+        "text": result.get("text", ""),
+        "confidence": result.get("confidence", ""),
+        "coverage": result.get("coverage", 0),
         "created_at": datetime.utcnow()
     }
 
-    queries.insert_one(record)
+    try:
+        queries.insert_one(record)
+    except Exception as e:
+        print("Mongo insert failed:", e)
 
     return jsonify({
-        "text": result["text"],
-        "confidence": result["confidence"],
-        "coverage": result["coverage"]
+        "text": result.get("text", ""),
+        "confidence": result.get("confidence", ""),
+        "coverage": result.get("coverage", 0)
     })
 
 
@@ -105,6 +109,7 @@ def upload_file():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
