@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify
 from rag_engine import generate_answer
-from db import queries
 from pymongo import MongoClient
 from flask_cors import CORS
 from datetime import datetime
@@ -106,6 +105,7 @@ def upload_file():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
