@@ -46,16 +46,19 @@ Question:
 Answer:
 """
 
-    client = InferenceClient(token=os.getenv("HF_API_KEY"))
-
-    response = client.chat_completion(
+    client = InferenceClient(
         model="mistralai/Mistral-7B-Instruct-v0.2",
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=512,
-        temperature=0.3
+        token=os.getenv("HF_API_KEY"),
+        timeout=120
     )
 
-    answer = response.choices[0].message.content
+
+    answer = client.text_generation(
+        prompt,
+        max_new_tokens=512,
+        temperature=0.3,
+        do_sample=False
+    )
 
     sources = [
         {"source": d.metadata.get("source"), "page": d.metadata.get("page")}
@@ -68,3 +71,4 @@ Answer:
         "coverage": compute_coverage(docs),
         "sources": sources
     }
+
