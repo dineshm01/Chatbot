@@ -37,9 +37,10 @@ def ingest_document(filepath):
 
     os.makedirs(VECTOR_DIR, exist_ok=True)
     vectorstore.save_local(VECTOR_DIR)
+    
+    print("DEBUG vectorstore saved at:", VECTOR_DIR)
     print("Saved files:", os.listdir(VECTOR_DIR))
 
-    print("DEBUG vectorstore saved at:", VECTOR_DIR)
 
 
 
