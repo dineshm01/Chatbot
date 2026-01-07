@@ -19,7 +19,7 @@ from utils.retriever import create_vectorstore
 from utils.loaders import load_file
 from langchain_community.vectorstores import FAISS
 
-VECTOR_DIR = VECTOR_DIR = "/app/vectorstore"
+VECTOR_DIR = "/app/vectorstore"
 
 def load_vectorstore():
     if not os.path.exists(os.path.join(VECTOR_DIR, "index.faiss")):
@@ -69,6 +69,7 @@ def compute_coverage(docs, max_chars=1200):
         return 0
     total_chars = sum(len(d.page_content) for d in docs)
     return min(100, int((total_chars / max_chars) * 100))
+
 
 
 
