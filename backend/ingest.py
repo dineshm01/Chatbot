@@ -4,7 +4,7 @@ from langchain_community.document_loaders import UnstructuredPowerPointLoader
 from utils.embeddings import get_embeddings
 import os
 
-VECTOR_DIR = "vectorstore"
+VECTOR_DIR = "/app/vectorstore"
 
 def ingest_document(filepath):
     loader = UnstructuredPowerPointLoader(filepath)
@@ -39,3 +39,6 @@ def ingest_document(filepath):
     vectorstore.save_local(VECTOR_DIR)
 
     print("DEBUG vectorstore saved at:", VECTOR_DIR)
+    print("Saved files:", os.listdir(VECTOR_DIR))
+
+
