@@ -8,11 +8,14 @@ VECTOR_DIR = "vectorstore"
 
 def ingest_document(filepath):
     loader = UnstructuredPowerPointLoader(filepath)
-    docs = loader.load()  # This returns List[Document]
-    docs = loader.load()
-    print("DEBUG docs type:", type(docs))
-    print("DEBUG first doc:", docs[0])
 
+    try:
+        docs = loader.load()
+    except Exception as e:
+        raise RuntimeError(f"PPTX parsing failed: {e}")
+
+    print("DEBUG docs type:", type(docs))
+    print("DEBUG docs count:", len(docs))
 
     if not docs:
         raise RuntimeError("No documents loaded from file")
@@ -21,7 +24,10 @@ def ingest_document(filepath):
         chunk_size=500,
         chunk_overlap=100
     )
+
     chunks = splitter.split_documents(docs)
+
+    print("DEBUG chunks:", len(chunks))
 
     if not chunks:
         raise RuntimeError("No chunks created")
@@ -32,3 +38,4 @@ def ingest_document(filepath):
     os.makedirs(VECTOR_DIR, exist_ok=True)
     vectorstore.save_local(VECTOR_DIR)
 
+    print("DEBUG vectorstore saved at:", VECTOR_DIR)
