@@ -37,10 +37,7 @@ def generate_answer(question, mode, memory=None):
         }
 
 
-    llm = HuggingFaceHub(
-        repo_id="google/flan-t5-base",
-        model_kwargs={"temperature": 0.2, "max_length": 512}
-    )
+    client = InferenceClient(token=os.getenv("HF_API_KEY"))
 
     prompt = ChatPromptTemplate.from_template(
     """
@@ -126,5 +123,6 @@ def generate_answer(question, mode, memory=None):
         "coverage": compute_coverage(docs),
         "sources": sources
     }
+
 
 
