@@ -9,6 +9,10 @@ VECTOR_DIR = "vectorstore"
 def ingest_document(filepath):
     loader = UnstructuredPowerPointLoader(filepath)
     docs = loader.load()  # This returns List[Document]
+    docs = loader.load()
+    print("DEBUG docs type:", type(docs))
+    print("DEBUG first doc:", docs[0])
+
 
     if not docs:
         raise RuntimeError("No documents loaded from file")
@@ -27,3 +31,4 @@ def ingest_document(filepath):
 
     os.makedirs(VECTOR_DIR, exist_ok=True)
     vectorstore.save_local(VECTOR_DIR)
+
