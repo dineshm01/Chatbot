@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 
+
 function App() {
   const [question, setQuestion] = useState("");
   const [mode, setMode] = useState("Detailed");
@@ -10,130 +11,129 @@ function App() {
   const [showHistoryPanel, setShowHistoryPanel] = useState(false);
   const [historyItems, setHistoryItems] = useState([]);
   const [uploading, setUploading] = useState(false);
-
   const API = process.env.REACT_APP_API_URL;
-
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
   if (!API) {
-    return (
-      <div style={{ padding: 40, color: "red", textAlign: "center" }}>
-        ❌ REACT_APP_API_URL is not defined. Set it in your environment.
-      </div>
-    );
-  }
-
+  console.error("REACT_APP_API_URL is not defined");
+}
+  useEffect(() => {
+  chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+}, [messages]);
   function clearChat() {
-    setMessages([]);
-  }
+  setMessages([]);
+}
 
-  async function uploadFile(e) {
-    const file = e.target.files[0];
-    if (!file || uploading) return;
+async function uploadFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
 
-    const formData = new FormData();
-    formData.append("file", file);
+  const formData = new FormData();
+  formData.append("file", file);
 
-    setUploading(true);
+  setUploading(true);
+  try {
+    const res = await fetch(`${API}/api/upload`, {
+      method: "POST",
+      body: formData
+    });
+
+    let data;
     try {
-      const res = await fetch(`${API}/api/upload`, { method: "POST", body: formData });
-      const text = await res.text();
-
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        throw new Error(text || "Invalid server response");
-      }
-
-      if (!res.ok) throw new Error(data.error || "Upload failed");
-
-      alert(data.message || "Uploaded successfully");
-    } catch (err) {
-      alert(err.message || "Upload failed");
-    } finally {
-      setUploading(false);
-    }
-  }
-
-  async function loadHistoryItem(q) {
-    try {
-      const res = await fetch(`${API}/api/history/${encodeURIComponent(q)}`);
-      const data = await res.json();
-
-      setMessages([
-        { role: "user", text: data.question },
-        { role: "bot", text: data.text, confidence: data.confidence, coverage: data.coverage }
-      ]);
-      setShowHistoryPanel(false);
-    } catch (err) {
-      alert("Failed to load history item");
-    }
-  }
-
-  async function loadHistoryPanel() {
-    try {
-      const res = await fetch(`${API}/api/history`);
-      const data = await res.json();
-      setHistoryItems(data);
-      setShowHistoryPanel(true);
+      data = await res.json();
     } catch {
-      alert("Failed to load history");
+      throw new Error("Invalid server response");
     }
+    if (!res.ok) {
+      throw new Error(data.error || "Upload failed");
+    }
+    alert(data.message || "Uploaded");
+  } catch (err) {
+    alert("Upload failed");  
+  } finally {
+    setUploading(false);
   }
+}
 
-  async function ask() {
-    if (!question.trim() || loading) return;
 
-    const userMessage = { role: "user", text: question };
-    const updatedMessages = [...messages, userMessage];
+async function loadHistoryItem(q) {
+  const res = await fetch(`${API}/api/history/${encodeURIComponent(q)}`);
+  const data = await res.json();
 
-    setMessages(updatedMessages);
-    setQuestion("");
-    setLoading(true);
+  setMessages([
+    { role: "user", text: data.question },
+    {
+      role: "bot",
+      text: data.text,
+      confidence: data.confidence,
+      coverage: data.coverage
+    }
+  ]);
 
+  setShowHistoryPanel(false);
+}
+
+async function loadHistoryPanel() {
+  const res = await fetch(`${API}/api/history`);
+  const data = await res.json();
+  setHistoryItems(data);
+  setShowHistoryPanel(true);
+}
+  
+
+async function ask() {
+  if (!question.trim() || loading) return;
+
+  setLoading(true);
+
+  const userMessage = { role: "user", text: question };
+  setMessages(prev => [...prev, userMessage]);
+  setQuestion("");
+
+  try {
+    const memory = messages.slice(-6);
+
+    const res = await fetch(`${API}/api/ask`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, mode, memory })
+    });
+
+    let data;
     try {
-      const memory = updatedMessages.slice(-6);
-
-      const res = await fetch(`${API}/api/ask`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, mode, memory })
-      });
-
-      const text = await res.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        throw new Error(text || "Invalid server response");
-      }
-
-      if (!res.ok) throw new Error(data.error || "Server error");
-
-      const botMessage = {
-        role: "bot",
-        text: data.text,
-        confidence: data.confidence,
-        coverage: data.coverage
-      };
-
-      setMessages(prev => [...prev, botMessage]);
-    } catch (err) {
-      setMessages(prev => [...prev, { role: "bot", text: `⚠️ ${err.message || "Error contacting server"}` }]);
-    } finally {
-      setLoading(false);
+      data = await res.json();
+    } catch {
+      throw new Error("Invalid server response");
     }
-  }
-
-  function handleKeyDown(e) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      ask();
+    if (!res.ok) {
+      throw new Error(data.error || "Server error");
     }
+
+
+    const botMessage = {
+      role: "bot",
+      text: data.text,
+      confidence: data.confidence,
+      coverage: data.coverage
+    };
+
+    setMessages(prev => [...prev, botMessage]);
+  } catch (err) {
+      console.error(err);
+      setMessages(prev => [
+        ...prev,
+        { role: "bot", text: `⚠️ ${err.message || "Error contacting server."}` }
+      ]);
   }
+ finally {
+    setLoading(false);
+  }
+}
+
+function handleKeyDown(e) {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    ask();
+  }
+}
 
   return (
     <div style={{
