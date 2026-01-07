@@ -8,6 +8,19 @@ from rag_utils import (
     compute_coverage
 )
 
+client = InferenceClient(
+    model="mistralai/Mistral-7B-Instruct-v0.2",
+    token=os.getenv("HF_API_KEY")
+)
+
+def call_llm(prompt: str) -> str:
+    response = client.chat_completion(
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=512,
+        temperature=0.3,
+    )
+    return response.choices[0].message.content
+
 def generate_answer(question, mode, memory=None):
     memory = memory or []
 
@@ -46,19 +59,8 @@ Question:
 Answer:
 """
 
-    client = InferenceClient(
-        model="mistralai/Mistral-7B-Instruct-v0.2",
-        token=os.getenv("HF_API_KEY"),
-        timeout=120
-    )
 
-
-    answer = client.text_generation(
-        prompt,
-        max_new_tokens=512,
-        temperature=0.3,
-        do_sample=False
-    )
+    answer = call_llm(prompt)
 
     sources = [
         {"source": d.metadata.get("source"), "page": d.metadata.get("page")}
@@ -71,4 +73,5 @@ Answer:
         "coverage": compute_coverage(docs),
         "sources": sources
     }
+
 
