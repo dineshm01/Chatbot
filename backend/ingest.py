@@ -13,6 +13,5 @@ def ingest_document(filepath):
     chunks = splitter.split_documents(docs)
 
     embeddings = get_embeddings()
-
     vectorstore = FAISS.from_documents(chunks, embeddings)
     vectorstore.save_local(VECTOR_DIR)
