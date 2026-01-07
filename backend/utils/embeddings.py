@@ -1,34 +1,28 @@
 import os
-from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
+import requests
 
-class WrappedHFEmbeddings:
-    def __init__(self):
-        api_key = os.getenv("HF_API_KEY")
-        if not api_key:
-            raise RuntimeError("HF_API_KEY environment variable is missing")
+HF_API_KEY = os.getenv("HF_API_KEY")
+MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+URL = f"https://api-inference.huggingface.co/pipeline/feature-extraction/{MODEL}"
 
-        self.client = HuggingFaceInferenceAPIEmbeddings(
-            api_key=api_key,
-            model_name="sentence-transformers/all-MiniLM-L6-v2"
-        )
+HEADERS = {
+    "Authorization": f"Bearer {HF_API_KEY}",
+    "Content-Type": "application/json"
+}
 
-    def embed_documents(self, texts):
-        result = self.client.embed_documents(texts)
+def embed_texts(texts: list[str]) -> list[list[float]]:
+    if not texts:
+        return []
 
-        # HF sometimes returns {"embeddings": [...]}
-        if isinstance(result, dict):
-            result = result.get("embeddings", [])
+    response = requests.post(URL, headers=HEADERS, json={"inputs": texts})
+    response.raise_for_status()
+    data = response.json()
 
-        return result
+    # Normalize shape
+    if isinstance(data, list) and data and isinstance(data[0], (float, int)):
+        data = [data]
 
-    def embed_query(self, text):
-        result = self.client.embed_query(text)
+    if not isinstance(data, list) or not data or not isinstance(data[0], list):
+        raise RuntimeError(f"Invalid embedding response: {data}")
 
-        if isinstance(result, dict):
-            result = result.get("embedding", result.get("embeddings", []))
-
-        return result
-
-
-def get_embeddings():
-    return WrappedHFEmbeddings()
+    return data
