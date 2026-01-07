@@ -1,4 +1,5 @@
-from langchain_community.llms import HuggingFaceHub
+from huggingface_hub import InferenceClient
+import os
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 
@@ -125,4 +126,5 @@ def generate_answer(question, mode, memory=None):
         "coverage": compute_coverage(docs),
         "sources": sources
     }
+
 
