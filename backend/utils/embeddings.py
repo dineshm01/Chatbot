@@ -1,5 +1,5 @@
 import os
-from langchain_huggingface import HuggingFaceInferenceAPIEmbeddings
+from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
 
 def get_embeddings():
     api_key = os.getenv("HF_API_KEY")
@@ -10,3 +10,4 @@ def get_embeddings():
         api_key=api_key,
         model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
+
