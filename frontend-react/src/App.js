@@ -29,11 +29,15 @@ function highlightSources(answer, chunks) {
   let highlighted = answer;
 
   chunks.forEach(chunk => {
-    const safe = chunk.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const regex = new RegExp(safe, "g");
+    if (!chunk || chunk.length < 30) return;
+
+    const escaped = chunk.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    const regex = new RegExp(escaped.replace(/\s+/g, "\\s+"), "gi");
+
     highlighted = highlighted.replace(
       regex,
-      `<mark style="background:#d1fae5;padding:2px 4px;border-radius:4px">${chunk}</mark>`
+      match => `<mark style="background:#d1fae5;padding:2px 4px;border-radius:4px">${match}</mark>`
     );
   });
 
