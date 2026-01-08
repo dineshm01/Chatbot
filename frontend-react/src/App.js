@@ -22,6 +22,19 @@ function App() {
   setMessages([]);
 }
 
+function highlightSources(answer, chunks) {
+  if (!chunks || chunks.length === 0) return answer;
+
+  const sentences = answer.split(/(?<=\.)\s+/);
+
+  return sentences.map((s, i) => {
+    const grounded = chunks.some(c => c.includes(s.slice(0, 30)));
+    return grounded
+      ? `<mark style="background:#d1fae5">${s}</mark>`
+      : s;
+  }).join(" ");
+}
+
 async function sendFeedback(text, feedback) {
   try {
     await fetch(`${API}/api/feedback`, {
