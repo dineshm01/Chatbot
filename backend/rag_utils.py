@@ -1,6 +1,7 @@
 import os
 from langchain_community.vectorstores import FAISS
 from utils.embeddings import get_embeddings
+from rapidfuzz import fuzz
 
 VECTOR_DIR = "/app/vectorstore"
 
@@ -38,8 +39,34 @@ def compute_confidence(docs):
         return "🟡 Confidence: Partially inferred"
     return "🔵 Confidence: General knowledge"
 
-def compute_coverage(docs, max_chars=1200):
-    if not docs:
-        return 0
-    total = sum(len(d.page_content) for d in docs)
-    return min(100, int((total / max_chars) * 100))
+
+def compute_coverage(docs, answer=None, threshold=70):
+    """
+    Measures how much of the answer is supported by retrieved docs.
+    """
+    if not docs or not answer:
+        return {
+            "grounded": 0,
+            "general": 100
+        }
+
+    doc_text = " ".join(d.page_content for d in docs).lower()
+    sentences = [s.strip() for s in answer.split(".") if len(s.strip()) > 10]
+
+    if not sentences:
+        return {"grounded": 0, "general": 100}
+
+    grounded = 0
+    for s in sentences:
+        score = fuzz.partial_ratio(s.lower(), doc_text)
+        if score >= threshold:
+            grounded += 1
+
+    grounded_pct = int((grounded / len(sentences)) * 100)
+    general_pct = 100 - grounded_pct
+
+    return {
+        "grounded": grounded_pct,
+        "general": general_pct
+    }
+
