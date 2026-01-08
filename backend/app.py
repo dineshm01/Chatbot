@@ -94,6 +94,10 @@ def get_history_item(question):
     item = queries.find_one({"question": {"$regex": f"^{question}$", "$options": "i"}}, {"_id": 0})
     if not item:
         return jsonify({"error": "Not found"}), 404
+
+    if isinstance(item.get("coverage"), int):
+        item["coverage"] = {"grounded": item["coverage"], "general": 100 - item["coverage"]}
+
     return jsonify(item)
 
 @app.route("/api/upload", methods=["POST"])
@@ -121,6 +125,7 @@ def upload_file():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
