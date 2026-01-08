@@ -54,8 +54,8 @@ async function uploadFile(e) {
 }
 
 
-async function loadHistoryItem(q) {
-  const res = await fetch(`${API}/api/history/${encodeURIComponent(q)}`);
+async function loadHistoryItem(id) {
+  const res = await fetch(`${API}/api/history/id/${id}`);
   const data = await res.json();
 
   const botCoverage =
@@ -358,7 +358,7 @@ function handleKeyDown(e) {
 
           {historyItems.map((item, i) => (
             <div
-              key={i}
+              key={item._id}
               style={{
                 padding: "8px",
                 borderBottom: "1px solid #eee",
@@ -369,7 +369,7 @@ function handleKeyDown(e) {
             >
               <span
                 style={{ cursor: "pointer" }}
-                onClick={() => loadHistoryItem(item.question)}
+                onClick={() => loadHistoryItem(item._id)}
               >
                 {item.question}
               </span>
