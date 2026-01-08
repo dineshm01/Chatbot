@@ -20,3 +20,4 @@ pytesseract==0.3.13
 unstructured[pptx]==0.18.26
 groq==0.4.2
 httpx==0.27.0
+rapidfuzz
