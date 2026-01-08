@@ -54,12 +54,18 @@ Answer:
         for d in filtered_docs[:3]
     ]
 
+    
+
+    coverage = compute_coverage(docs, answer)
+
     return {
         "text": answer.strip(),
         "confidence": compute_confidence(docs),
-        "coverage": compute_coverage(docs),
+        "coverage": coverage,
         "sources": sources
     }
+
+
 
 
 
