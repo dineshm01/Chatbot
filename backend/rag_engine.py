@@ -63,7 +63,9 @@ Answer:
         "confidence": compute_confidence(docs),
         "coverage": coverage,
         "sources": sources
+        "chunks": [d.page_content for d in filtered_docs]
     }
+
 
 
 
