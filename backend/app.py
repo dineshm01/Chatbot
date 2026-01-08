@@ -146,9 +146,27 @@ def upload_file():
         import traceback
         traceback.print_exc()
         return jsonify({"error": repr(e)}), 500
+
+@app.route("/api/feedback", methods=["POST"])
+def save_feedback():
+    data = request.json or {}
+    question = data.get("question")
+    feedback = data.get("feedback")  # "up" or "down"
+
+    if not question or feedback not in ["up", "down"]:
+        return jsonify({"error": "Invalid input"}), 400
+
+    queries.update_one(
+        {"question": question},
+        {"$set": {"feedback": feedback}}
+    )
+
+    return jsonify({"message": "Feedback saved"}), 200
+
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
