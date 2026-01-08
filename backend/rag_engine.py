@@ -1,6 +1,7 @@
 from huggingface_hub import InferenceClient
 import os
 from utils.llm import call_llm
+from rapidfuzz import fuzz
 from rag_utils import (
     load_vectorstore,
     get_retriever,
@@ -9,26 +10,19 @@ from rag_utils import (
     compute_coverage
 )
 
-from rapidfuzz import fuzz
-
-def extract_grounded_spans(answer, docs, threshold=80):
+def extract_grounded_spans(answer, docs, threshold=75):
     grounded = []
-    answer_l = answer.lower()
+    doc_text = " ".join(d.page_content.lower() for d in docs)
 
-    for d in docs:
-        text = d.page_content.strip()
-        if not text:
-            continue
+    sentences = [s.strip() for s in answer.split(".") if len(s.strip()) > 15]
 
-        parts = [p.strip() for p in text.split(".") if len(p.strip()) > 30]
-
-        for p in parts:
-            score = fuzz.partial_ratio(p.lower(), answer_l)
-            if score >= threshold:
-                grounded.append(p)
+    for s in sentences:
+        score = fuzz.partial_ratio(s.lower(), doc_text)
+        if score >= threshold:
+            grounded.append(s)
 
     return grounded
-
+    
 def generate_answer(question, mode, memory=None):
     memory = memory or []
 
@@ -78,7 +72,7 @@ Answer:
 
     coverage = compute_coverage(docs, answer)
 
-    grounded_sentences = extract_grounded_spans(answer, filtered_docs)
+    grounded_sentences = extract_grounded_spans(answer, filtered_docs, threshold=70)
 
 
     return {
@@ -88,6 +82,7 @@ Answer:
         "sources": sources,
         "chunks": grounded_sentences
     }
+
 
 
 
