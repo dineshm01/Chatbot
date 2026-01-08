@@ -9,18 +9,6 @@ from rag_utils import (
     compute_coverage
 )
 
-def extract_grounded_sentences(answer, docs):
-    grounded = []
-    answer_sentences = [s.strip() for s in answer.split(".") if len(s.strip()) > 10]
-
-    for sent in answer_sentences:
-        sent_l = sent.lower()
-        for d in docs:
-            if any(w in d.page_content.lower() for w in sent_l.split() if len(w) > 5):
-                grounded.append(sent)
-                break
-    return grounded
-
 def generate_answer(question, mode, memory=None):
     memory = memory or []
 
@@ -70,7 +58,10 @@ Answer:
 
     coverage = compute_coverage(docs, answer)
 
-    grounded_sentences = extract_grounded_sentences(answer, filtered_docs)
+    grounded_sentences = [
+        d.page_content[:400] for d in filtered_docs[:3] if d.page_content
+    ]
+
 
     return {
         "text": answer.strip(),
@@ -79,6 +70,7 @@ Answer:
         "sources": sources,
         "chunks": grounded_sentences
     }
+
 
 
 
