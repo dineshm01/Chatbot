@@ -58,18 +58,27 @@ async function loadHistoryItem(q) {
   const res = await fetch(`${API}/api/history/${encodeURIComponent(q)}`);
   const data = await res.json();
 
+  const botCoverage =
+    data.coverage && typeof data.coverage === "object"
+      ? data.coverage
+      : data.coverage !== undefined
+      ? { grounded: data.coverage, general: 100 - data.coverage }
+      : { grounded: 0, general: 0 };
+
   setMessages([
     { role: "user", text: data.question },
     {
       role: "bot",
-      text: data.text,
-      confidence: data.confidence,
-      coverage: data.coverage
+      text: data.text || "No answer found.",
+      confidence: data.confidence || "Unknown",
+      coverage: botCoverage,
+      sources: data.sources || []
     }
   ]);
 
   setShowHistoryPanel(false);
 }
+
 
 async function loadHistoryPanel() {
   const res = await fetch(`${API}/api/history`);
