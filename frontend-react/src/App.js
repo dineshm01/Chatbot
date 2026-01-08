@@ -22,24 +22,29 @@ function App() {
   setMessages([]);
 }
 
+function normalize(text) {
+  return text.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
+}
+
 function highlightSources(answer, chunks) {
   if (!chunks || chunks.length === 0) return answer;
 
-  let highlighted = answer;
+  const sentences = answer.split(/(?<=[.!?])\s+/);
 
-  chunks.forEach(chunk => {
-    if (!chunk || chunk.length < 10) return;
+  const highlighted = sentences.map(sentence => {
+    const normSentence = normalize(sentence);
 
-    const escaped = chunk.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const regex = new RegExp(escaped, "gi");
+    const isGrounded = chunks.some(chunk => {
+      const normChunk = normalize(chunk);
+      return normChunk.includes(normSentence.slice(0, 40)) || normSentence.includes(normChunk.slice(0, 40));
+    });
 
-    highlighted = highlighted.replace(
-      regex,
-      match => `<mark style="background:#d1fae5">${match}</mark>`
-    );
+    return isGrounded
+      ? `<mark style="background:#d1fae5">${sentence}</mark>`
+      : sentence;
   });
 
-  return highlighted;
+  return highlighted.join(" ");
 }
 
 async function sendFeedback(text, feedback) {
@@ -165,7 +170,7 @@ async function ask() {
       throw new Error(data.error || "Server error");
     }
 
-
+    console.log("Received chunks:", data.chunks);
     const botMessage = {
       role: "bot",
       text: highlightSources(data.text, data.chunks),
