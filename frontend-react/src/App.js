@@ -33,25 +33,20 @@ function normalize(s) {
 function highlightSources(answer, chunks) {
   if (!chunks || chunks.length === 0) return answer;
 
-  let highlighted = answer;
+  const sentences = answer.split(/(?<=\.)\s+/);
 
-  chunks.forEach(chunk => {
-    if (!chunk || chunk.length < 30) return;
+  return sentences.map(s => {
+    const sNorm = normalize(s);
 
-    const chunkNorm = normalize(chunk).slice(0, 120);
-    const sentences = answer.split(/(?<=\.)\s+/);
-
-    sentences.forEach(s => {
-      if (normalize(s).includes(chunkNorm.slice(0, 60))) {
-        highlighted = highlighted.replace(
-          s,
-          `<mark style="background:#d1fae5;padding:2px 4px;border-radius:4px">${s}</mark>`
-        );
-      }
+    const grounded = chunks.some(chunk => {
+      const cNorm = normalize(chunk);
+      return cNorm.includes(sNorm.slice(0, 40)) || sNorm.includes(cNorm.slice(0, 40));
     });
-  });
 
-  return highlighted;
+    return grounded
+      ? `<mark style="background:#d1fae5;padding:2px 4px;border-radius:4px">${s}</mark>`
+      : s;
+  }).join(" ");
 }
 
 async function sendFeedback(text, feedback) {
