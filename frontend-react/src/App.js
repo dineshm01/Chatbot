@@ -284,9 +284,11 @@ function handleKeyDown(e) {
               {m.role === "bot" && (
                 <div style={{ fontSize: "12px", marginTop: "4px", opacity: 0.6 }}>
                   {m.confidence} |{" "}
-                  {typeof m.coverage === "object" && m.coverage !== null
-                    ? `🧠 Grounded: ${m.coverage.grounded}% | General: ${m.coverage.general}%`
-                    : `Coverage: ${m.coverage}%`}
+                  {m.coverage && typeof m.coverage === "object"
+                    ? `🧠 Grounded: ${m.coverage.grounded ?? 0}% | General: ${m.coverage.general ?? 0}%`
+                    : m.coverage !== undefined
+                    ? `Coverage: ${m.coverage}%`
+                    : "Coverage: N/A"}
                 </div>
               )}
               {m.sources && m.sources.length > 0 && (
