@@ -67,7 +67,9 @@ def ask():
     return jsonify({
         "text": result.get("text", ""),
         "confidence": result.get("confidence", ""),
-        "coverage": result.get("coverage", 0)
+        "coverage": result.get("coverage", 0),
+        "chunks": result.get("chunks", []),
+        "sources": result.get("sources", [])
     })
 
 @app.route("/api/history", methods=["GET"])
@@ -166,6 +168,7 @@ def save_feedback():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
