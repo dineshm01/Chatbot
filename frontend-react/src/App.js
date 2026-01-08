@@ -22,29 +22,24 @@ function App() {
   setMessages([]);
 }
 
-function normalize(text) {
-  return text.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
-}
-
 function highlightSources(answer, chunks) {
   if (!chunks || chunks.length === 0) return answer;
 
-  const sentences = answer.split(/(?<=[.!?])\s+/);
+  const sentences = answer.split(/(?<=\.)\s+/);
 
-  const highlighted = sentences.map(sentence => {
-    const normSentence = normalize(sentence);
+  return sentences.map(sentence => {
+    const normalizedSentence = sentence.toLowerCase();
 
-    const isGrounded = chunks.some(chunk => {
-      const normChunk = normalize(chunk);
-      return normChunk.includes(normSentence.slice(0, 40)) || normSentence.includes(normChunk.slice(0, 40));
+    const grounded = chunks.some(chunk => {
+      const chunkLower = chunk.toLowerCase();
+      const words = normalizedSentence.split(/\W+/).filter(w => w.length > 4);
+      return words.some(w => chunkLower.includes(w));
     });
 
-    return isGrounded
-      ? `<mark style="background:#d1fae5">${sentence}</mark>`
+    return grounded
+      ? `<mark style="background:#d1fae5; padding:2px 4px; border-radius:4px;">${sentence}</mark>`
       : sentence;
-  });
-
-  return highlighted.join(" ");
+  }).join(" ");
 }
 
 async function sendFeedback(text, feedback) {
