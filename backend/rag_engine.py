@@ -1,5 +1,6 @@
 from huggingface_hub import InferenceClient
 import os
+from utils.llm import call_llm
 from rag_utils import (
     load_vectorstore,
     get_retriever,
@@ -7,19 +8,6 @@ from rag_utils import (
     compute_confidence,
     compute_coverage
 )
-
-client = InferenceClient(
-    model="mistralai/Mistral-7B-Instruct-v0.2",
-    token=os.getenv("HF_API_KEY")
-)
-
-def call_llm(prompt: str) -> str:
-    response = client.chat_completion(
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=512,
-        temperature=0.3,
-    )
-    return response.choices[0].message.content
 
 def generate_answer(question, mode, memory=None):
     memory = memory or []
@@ -59,7 +47,6 @@ Question:
 Answer:
 """
 
-
     answer = call_llm(prompt)
 
     sources = [
@@ -73,5 +60,6 @@ Answer:
         "coverage": compute_coverage(docs),
         "sources": sources
     }
+
 
 
