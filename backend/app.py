@@ -76,6 +76,18 @@ def history():
         return jsonify(data)
     except Exception as e:
         return jsonify([])
+
+@app.route("/api/history/<question>", methods=["DELETE"])
+def delete_history_item(question):
+    result = queries.delete_one({"question": {"$regex": f"^{question}$", "$options": "i"}})
+    if result.deleted_count == 0:
+        return jsonify({"error": "Not found"}), 404
+    return jsonify({"message": "Deleted"}), 200
+
+@app.route("/api/history", methods=["DELETE"])
+def delete_all_history():
+    queries.delete_many({})
+    return jsonify({"message": "All history deleted"}), 200
     
 @app.route("/api/history/<question>", methods=["GET"])
 def get_history_item(question):
@@ -106,9 +118,10 @@ def upload_file():
         import traceback
         traceback.print_exc()
         return jsonify({"error": repr(e)}), 500
-
+        
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
