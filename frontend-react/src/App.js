@@ -22,34 +22,22 @@ function App() {
   setMessages([]);
 }
 
-console.log("Sentence:", s, "Overlap:", overlap);
-
-function normalize(s) {
-  return s
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 function highlightSources(answer, chunks) {
   if (!chunks || chunks.length === 0) return answer;
 
-  const sentences = answer.split(/(?<=\.)\s+/);
+  let highlighted = answer;
 
-  return sentences.map(s => {
-    const sWords = normalize(s).split(" ").filter(w => w.length > 5);
+  chunks.forEach(chunk => {
+    const safe = chunk.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(safe, "g");
+    highlighted = highlighted.replace(
+      regex,
+      `<mark style="background:#d1fae5;padding:2px 4px;border-radius:4px">${chunk}</mark>`
+    );
+  });
 
-    const grounded = chunks.some(chunk => {
-      const cNorm = normalize(chunk);
-      const overlap = sWords.filter(w => cNorm.includes(w));
-      return overlap.length >= 3; // at least 3 keyword overlaps
-    });
-
-    return grounded
-      ? `<mark style="background:#d1fae5;padding:2px 4px;border-radius:4px">${s}</mark>`
-      : s;
-  }).join(" ");
+  return highlighted;
 }
 
 async function sendFeedback(text, feedback) {
@@ -203,6 +191,8 @@ function handleKeyDown(e) {
     ask();
   }
 }
+
+console.log("Sentence:", s, "Overlap:", overlap);
 
   return (
     <div style={{
