@@ -70,6 +70,27 @@ def ask():
         "coverage": result.get("coverage", 0)
     })
 
+@app.route("/api/history", methods=["GET"])
+def get_history():
+    data = list(
+        queries.find()
+        .sort("created_at", -1)
+        .limit(50)
+    )
+
+    # convert ObjectId to string for JSON
+    for item in data:
+        item["_id"] = str(item["_id"])
+
+        # normalize coverage format
+        if isinstance(item.get("coverage"), int):
+            item["coverage"] = {
+                "grounded": item["coverage"],
+                "general": 100 - item["coverage"]
+            }
+
+    return jsonify(data)
+
 @app.route("/api/history/id/<id>", methods=["GET"])
 def get_history_by_id(id):
     try:
@@ -79,6 +100,17 @@ def get_history_by_id(id):
         return jsonify(item)
     except:
         return jsonify({"error": "Invalid id"}), 400
+    
+@app.route("/api/history/<question>", methods=["GET"])
+def get_history_item(question):
+    item = queries.find_one({"question": {"$regex": f"^{question}$", "$options": "i"}}, {"_id": 0})
+    if not item:
+        return jsonify({"error": "Not found"}), 404
+
+    if isinstance(item.get("coverage"), int):
+        item["coverage"] = {"grounded": item["coverage"], "general": 100 - item["coverage"]}
+
+    return jsonify(item)
 
 @app.route("/api/history/<question>", methods=["DELETE"])
 def delete_history_item(question):
@@ -92,17 +124,6 @@ def delete_all_history():
     queries.delete_many({})
     return jsonify({"message": "All history deleted"}), 200
     
-@app.route("/api/history/<question>", methods=["GET"])
-def get_history_item(question):
-    item = queries.find_one({"question": {"$regex": f"^{question}$", "$options": "i"}}, {"_id": 0})
-    if not item:
-        return jsonify({"error": "Not found"}), 404
-
-    if isinstance(item.get("coverage"), int):
-        item["coverage"] = {"grounded": item["coverage"], "general": 100 - item["coverage"]}
-
-    return jsonify(item)
-
 @app.route("/api/upload", methods=["POST"])
 def upload_file():
     try:
@@ -128,6 +149,7 @@ def upload_file():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
