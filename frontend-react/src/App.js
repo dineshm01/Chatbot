@@ -77,7 +77,24 @@ async function loadHistoryPanel() {
   setHistoryItems(data);
   setShowHistoryPanel(true);
 }
-  
+
+async function deleteHistoryItem(q) {
+  if (!window.confirm("Delete this item?")) return;
+
+  await fetch(`${API}/api/history/${encodeURIComponent(q)}`, {
+    method: "DELETE"
+  });
+
+  setHistoryItems(prev => prev.filter(item => item.question !== q));
+}
+
+async function deleteAllHistory() {
+  if (!window.confirm("Delete ALL history?")) return;
+
+  await fetch(`${API}/api/history`, { method: "DELETE" });
+  setHistoryItems([]);
+  setMessages([]);
+}
 
 async function ask() {
   if (!question.trim() || loading) return;
@@ -318,7 +335,15 @@ function handleKeyDown(e) {
           zIndex: 1000
         }}>
           <h3>History</h3>
-          <button onClick={() => setShowHistoryPanel(false)}>Close</button>
+          <div style={{ marginBottom: "8px" }}>
+            <button onClick={() => setShowHistoryPanel(false)}>Close</button>
+            <button 
+              onClick={deleteAllHistory}
+              style={{ marginLeft: "8px", color: "red" }}
+            >
+              Delete All
+            </button>
+          </div>
 
           {historyItems.map((item, i) => (
             <div
@@ -326,11 +351,28 @@ function handleKeyDown(e) {
               style={{
                 padding: "8px",
                 borderBottom: "1px solid #eee",
-                cursor: "pointer"
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center"
               }}
-              onClick={() => loadHistoryItem(item.question)}
             >
-              {item.question}
+              <span
+                style={{ cursor: "pointer" }}
+                onClick={() => loadHistoryItem(item.question)}
+              >
+                {item.question}
+              </span>
+              <button
+                onClick={() => deleteHistoryItem(item.question)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "red",
+                  cursor: "pointer"
+                }}
+              >
+                ✕
+              </button>
             </div>
           ))}
         </div>
