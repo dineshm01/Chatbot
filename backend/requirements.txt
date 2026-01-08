@@ -18,4 +18,4 @@ pillow==12.1.0
 pytesseract==0.3.13
 
 unstructured[pptx]==0.18.26
-
+groq==0.9.0
