@@ -22,19 +22,33 @@ function App() {
   setMessages([]);
 }
 
-function highlightSources(answer, groundedSentences) {
-  if (!groundedSentences || groundedSentences.length === 0) return answer;
+function normalize(s) {
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function highlightSources(answer, chunks) {
+  if (!chunks || chunks.length === 0) return answer;
 
   let highlighted = answer;
 
-  groundedSentences.forEach(sentence => {
-    const escaped = sentence.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const regex = new RegExp(escaped, "gi");
+  chunks.forEach(chunk => {
+    if (!chunk || chunk.length < 30) return;
 
-    highlighted = highlighted.replace(
-      regex,
-      match => `<mark style="background:#d1fae5; padding:2px 4px; border-radius:4px;">${match}</mark>`
-    );
+    const chunkNorm = normalize(chunk).slice(0, 120);
+    const sentences = answer.split(/(?<=\.)\s+/);
+
+    sentences.forEach(s => {
+      if (normalize(s).includes(chunkNorm.slice(0, 60))) {
+        highlighted = highlighted.replace(
+          s,
+          `<mark style="background:#d1fae5;padding:2px 4px;border-radius:4px">${s}</mark>`
+        );
+      }
+    });
   });
 
   return highlighted;
