@@ -266,7 +266,10 @@ function handleKeyDown(e) {
               {m.role === "bot" ? <ReactMarkdown>{m.text}</ReactMarkdown> : m.text}
               {m.role === "bot" && (
                 <div style={{ fontSize: "12px", marginTop: "4px", opacity: 0.6 }}>
-                  {m.confidence} | Coverage: {m.coverage}%
+                  {m.confidence} |{" "}
+                  {typeof m.coverage === "object" && m.coverage !== null
+                    ? `🧠 Grounded: ${m.coverage.grounded}% | General: ${m.coverage.general}%`
+                    : `Coverage: ${m.coverage}%`}
                 </div>
               )}
               {m.sources && m.sources.length > 0 && (
