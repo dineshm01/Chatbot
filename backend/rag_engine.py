@@ -62,9 +62,10 @@ Answer:
         "text": answer.strip(),
         "confidence": compute_confidence(docs),
         "coverage": coverage,
-        "sources": sources
+        "sources": sources,
         "chunks": [d.page_content for d in filtered_docs]
     }
+
 
 
 
