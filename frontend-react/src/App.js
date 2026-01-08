@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
-
+import rehypeRaw from "rehype-raw";
 
 function App() {
   const [question, setQuestion] = useState("");
@@ -161,9 +161,10 @@ async function ask() {
 
     const botMessage = {
       role: "bot",
-      text: data.text,
+      text: highlightSources(data.text, data.chunks),
       confidence: data.confidence,
       coverage: data.coverage
+      sources: data.sources
     };
 
     setMessages(prev => [...prev, botMessage]);
@@ -314,7 +315,7 @@ function handleKeyDown(e) {
                 color: m.role === "user" ? "white" : "black"
               }}
             >
-              {m.role === "bot" ? <ReactMarkdown>{m.text}</ReactMarkdown> : m.text}
+              {m.role === "bot" ? <ReactMarkdown rehypePlugins={[rehypeRaw]}>{m.text}</ReactMarkdown> : m.text}
               {m.role === "bot" && (
                 <div style={{ fontSize: "12px", marginTop: "4px", opacity: 0.6 }}>
                 <div>
