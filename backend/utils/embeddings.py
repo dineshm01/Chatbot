@@ -1,13 +1,14 @@
-# backend/utils/embeddings.py
+# utils/embeddings.py
 
 import os
 from huggingface_hub import InferenceClient
 
 HF_API_KEY = os.getenv("HF_API_KEY")
 
-client = InferenceClient(token=HF_API_KEY)
+# Use a free-tier compatible embedding model
+MODEL = "intfloat/e5-small-v2"
 
-MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+client = InferenceClient(token=HF_API_KEY)
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
     if not texts:
@@ -18,6 +19,7 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
         model=MODEL
     )
 
+    # Ensure output is always list[list[float]]
     if isinstance(embeddings[0], float):
         embeddings = [embeddings]
 
