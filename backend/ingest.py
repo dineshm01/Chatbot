@@ -1,5 +1,5 @@
 from utils.loaders import load_file
-from utils.embeddings import embed_texts
+from utils.embeddings import embed_texts, get_embeddings
 from langchain_community.vectorstores import FAISS
 
 VECTOR_DIR = "vectorstore"
@@ -18,8 +18,11 @@ def ingest_document(filepath):
     if len(texts) != len(vectors):
         raise RuntimeError("Mismatch between texts and embeddings")
 
+    embeddings = get_embeddings()  # <-- this was missing
+
     vectorstore = FAISS.from_embeddings(
         text_embeddings=list(zip(texts, vectors)),
+        embedding=embeddings,        # <-- pass embedding wrapper
         metadatas=metadatas
     )
 
