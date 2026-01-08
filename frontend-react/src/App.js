@@ -25,14 +25,21 @@ function App() {
 function highlightSources(answer, chunks) {
   if (!chunks || chunks.length === 0) return answer;
 
-  const sentences = answer.split(/(?<=\.)\s+/);
+  let highlighted = answer;
 
-  return sentences.map((s, i) => {
-    const grounded = chunks.some(c => c.includes(s.slice(0, 30)));
-    return grounded
-      ? `<mark style="background:#d1fae5">${s}</mark>`
-      : s;
-  }).join(" ");
+  chunks.forEach(chunk => {
+    if (!chunk || chunk.length < 10) return;
+
+    const escaped = chunk.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(escaped, "gi");
+
+    highlighted = highlighted.replace(
+      regex,
+      match => `<mark style="background:#d1fae5">${match}</mark>`
+    );
+  });
+
+  return highlighted;
 }
 
 async function sendFeedback(text, feedback) {
@@ -163,7 +170,7 @@ async function ask() {
       role: "bot",
       text: highlightSources(data.text, data.chunks),
       confidence: data.confidence,
-      coverage: data.coverage
+      coverage: data.coverage,
       sources: data.sources
     };
 
