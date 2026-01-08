@@ -22,6 +22,18 @@ function App() {
   setMessages([]);
 }
 
+async function sendFeedback(text, feedback) {
+  try {
+    await fetch(`${API}/api/feedback`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: text, feedback })
+    });
+  } catch (err) {
+    console.error("Feedback failed", err);
+  }
+}
+
 async function uploadFile(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -292,6 +304,7 @@ function handleKeyDown(e) {
               {m.role === "bot" ? <ReactMarkdown>{m.text}</ReactMarkdown> : m.text}
               {m.role === "bot" && (
                 <div style={{ fontSize: "12px", marginTop: "4px", opacity: 0.6 }}>
+                <div>
                   {m.confidence} |{" "}
                   {m.coverage && typeof m.coverage === "object"
                     ? `🧠 Grounded: ${m.coverage.grounded ?? 0}% | General: ${m.coverage.general ?? 0}%`
@@ -299,7 +312,12 @@ function handleKeyDown(e) {
                     ? `Coverage: ${m.coverage}%`
                     : "Coverage: N/A"}
                 </div>
-              )}
+                <div style={{ marginTop: "4px" }}>
+                  <button onClick={() => sendFeedback(m.text, "up")}>👍</button>
+                  <button onClick={() => sendFeedback(m.text, "down")} style={{ marginLeft: "6px" }}>👎</button>
+                </div>
+              </div>
+            )}
               {m.sources && m.sources.length > 0 && (
                 <div style={{ marginTop: "6px", fontSize: "12px" }}>
                   <b>Sources:</b>
