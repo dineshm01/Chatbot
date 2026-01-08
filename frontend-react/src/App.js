@@ -22,6 +22,8 @@ function App() {
   setMessages([]);
 }
 
+console.log("Sentence:", s, "Overlap:", overlap);
+
 function normalize(s) {
   return s
     .toLowerCase()
@@ -36,11 +38,12 @@ function highlightSources(answer, chunks) {
   const sentences = answer.split(/(?<=\.)\s+/);
 
   return sentences.map(s => {
-    const sNorm = normalize(s);
+    const sWords = normalize(s).split(" ").filter(w => w.length > 5);
 
     const grounded = chunks.some(chunk => {
       const cNorm = normalize(chunk);
-      return cNorm.includes(sNorm.slice(0, 40)) || sNorm.includes(cNorm.slice(0, 40));
+      const overlap = sWords.filter(w => cNorm.includes(w));
+      return overlap.length >= 3; // at least 3 keyword overlaps
     });
 
     return grounded
