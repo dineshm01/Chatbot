@@ -5,8 +5,8 @@ from huggingface_hub import InferenceClient
 
 HF_API_KEY = os.getenv("HF_API_KEY")
 
-# Use a free-tier compatible embedding model
-MODEL = "intfloat/e5-small-v2"
+# Model that supports feature-extraction
+MODEL = "sentence-transformers/paraphrase-MiniLM-L3-v2"
 
 client = InferenceClient(token=HF_API_KEY)
 
