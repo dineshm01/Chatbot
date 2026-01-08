@@ -11,13 +11,18 @@ from rag_utils import (
 
 def extract_grounded_spans(answer, docs):
     grounded = []
-    doc_text = " ".join(d.page_content.lower() for d in docs)
+    answer_l = answer.lower()
 
-    sentences = [s.strip() for s in answer.split(".") if len(s.strip()) > 15]
+    for d in docs:
+        text = d.page_content.strip()
+        if not text:
+            continue
 
-    for s in sentences:
-        if s.lower() in doc_text:
-            grounded.append(s)  # exact sentence from answer
+        parts = [p.strip() for p in text.split(".") if len(p.strip()) > 30]
+
+        for p in parts:
+            if p.lower() in answer_l:
+                grounded.append(p)
 
     return grounded
 
@@ -80,6 +85,7 @@ Answer:
         "sources": sources,
         "chunks": grounded_sentences
     }
+
 
 
 
