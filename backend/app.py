@@ -65,9 +65,9 @@ def ask():
         print("Mongo insert failed:", e)
 
     return jsonify({
-        "text": result.get("text", ""),
-        "confidence": result.get("confidence", ""),
-        "coverage": result.get("coverage", 0),
+        "text": result["text"],
+        "confidence": result["confidence"],
+        "coverage": result["coverage"],
         "chunks": result.get("chunks", []),
         "sources": result.get("sources", [])
     })
@@ -168,6 +168,7 @@ def save_feedback():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
