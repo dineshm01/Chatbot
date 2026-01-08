@@ -6,6 +6,7 @@ from datetime import datetime
 from werkzeug.utils import secure_filename
 import os
 from ingest import ingest_document
+from bson import ObjectId
 
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -68,14 +69,15 @@ def ask():
         "coverage": result.get("coverage", 0)
     })
 
-
-@app.route("/api/history", methods=["GET"])
-def history():
+@app.route("/api/history/id/<id>", methods=["GET"])
+def get_history_by_id(id):
     try:
-        data = list(queries.find({}, {"_id": 0}).sort("created_at", -1).limit(50))
-        return jsonify(data)
-    except Exception as e:
-        return jsonify([])
+        item = queries.find_one({"_id": ObjectId(id)}, {"_id": 0})
+        if not item:
+            return jsonify({"error": "Not found"}), 404
+        return jsonify(item)
+    except:
+        return jsonify({"error": "Invalid id"}), 400
 
 @app.route("/api/history/<question>", methods=["DELETE"])
 def delete_history_item(question):
@@ -125,6 +127,7 @@ def upload_file():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
