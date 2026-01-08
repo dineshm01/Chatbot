@@ -9,7 +9,9 @@ from rag_utils import (
     compute_coverage
 )
 
-def extract_grounded_spans(answer, docs):
+from rapidfuzz import fuzz
+
+def extract_grounded_spans(answer, docs, threshold=80):
     grounded = []
     answer_l = answer.lower()
 
@@ -21,7 +23,8 @@ def extract_grounded_spans(answer, docs):
         parts = [p.strip() for p in text.split(".") if len(p.strip()) > 30]
 
         for p in parts:
-            if p.lower() in answer_l:
+            score = fuzz.partial_ratio(p.lower(), answer_l)
+            if score >= threshold:
                 grounded.append(p)
 
     return grounded
@@ -85,6 +88,7 @@ Answer:
         "sources": sources,
         "chunks": grounded_sentences
     }
+
 
 
 
