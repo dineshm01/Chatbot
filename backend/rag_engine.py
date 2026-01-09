@@ -142,7 +142,6 @@ def generate_answer(question, mode, memory=None, strict=False):
 
     return {
         "text": answer.strip(),
-        "display_text": highlighted,
         "confidence": compute_confidence(docs),
         "coverage": coverage,
         "sources": sources,
@@ -153,6 +152,7 @@ def generate_answer(question, mode, memory=None, strict=False):
             "overlaps": debug
         }
     }
+
 
 
 
