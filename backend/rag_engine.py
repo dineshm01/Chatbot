@@ -34,11 +34,20 @@ def extract_grounded_spans(answer, docs, threshold=0.2):
 
     return grounded, debug
     
-def generate_answer(question, mode, memory=None):
+def generate_answer(question, mode, memory=None, strict=False):
     memory = memory or []
 
     retriever = get_retriever()
     docs = retriever.invoke(question) if retriever else []
+
+    if strict and not docs:
+        return {
+            "text": "❌ Strict mode: No relevant documents found. Please upload material.",
+            "confidence": "Strict mode",
+            "coverage": {"grounded": 0, "general": 0},
+            "sources": [],
+            "chunks": []
+        }
 
     filtered_docs = [
         d for d in docs
@@ -99,6 +108,7 @@ Answer:
             "overlaps": debug
         }
     }
+
 
 
 
