@@ -22,6 +22,13 @@ function App() {
   setMessages([]);
 }
 
+function normalize(text) {
+  return text
+    .toLowerCase()
+    .replace(/[*_`~#>\-\n]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 function highlightSources(answer, chunks) {
   if (!chunks || chunks.length === 0) return answer;
@@ -29,15 +36,20 @@ function highlightSources(answer, chunks) {
   let highlighted = answer;
 
   chunks.forEach(chunk => {
-    if (!chunk || chunk.length < 30) return;
+    if (!chunk || chunk.length < 20) return;
 
-    const escaped = chunk.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const normChunk = normalize(chunk);
+    const normAnswer = normalize(highlighted);
 
-    const regex = new RegExp(escaped.replace(/\s+/g, "\\s+"), "gi");
+    const idx = normAnswer.indexOf(normChunk);
+    if (idx === -1) return;
+
+    // Get approximate original slice
+    const originalSlice = highlighted.substr(idx, chunk.length);
 
     highlighted = highlighted.replace(
-      regex,
-      match => `<mark style="background:#d1fae5;padding:2px 4px;border-radius:4px">${match}</mark>`
+      originalSlice,
+      `<mark style="background:#d1fae5;padding:2px 4px;border-radius:4px">${originalSlice}</mark>`
     );
   });
 
