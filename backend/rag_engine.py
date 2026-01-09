@@ -40,6 +40,12 @@ def generate_answer(question, mode, memory=None, strict=False):
     retriever = get_retriever()
     docs = retriever.invoke(question) if retriever else []
 
+    filtered_docs = [
+        d for d in docs
+        if not (d.metadata.get("type") == "image" and d.metadata.get("ocr_confidence", 0) < 0.5)
+    ]
+
+    
     if strict and not filtered_docs:
         return {
             "text": "❌ Strict mode: No relevant documents found. Please upload material.",
@@ -48,11 +54,6 @@ def generate_answer(question, mode, memory=None, strict=False):
             "sources": [],
             "chunks": []
         }
-
-    filtered_docs = [
-        d for d in docs
-        if not (d.metadata.get("type") == "image" and d.metadata.get("ocr_confidence", 0) < 0.5)
-    ]
 
     context_text = "" if mode == "Diagram" else truncate_docs(filtered_docs)
 
@@ -108,6 +109,7 @@ Answer:
             "overlaps": debug
         }
     }
+
 
 
 
