@@ -387,8 +387,8 @@ function handleKeyDown(e) {
                     : "Coverage: N/A"}
                 </div>
                 <div style={{ marginTop: "4px" }}>
-                  <button onClick={() => sendFeedback(m.text, "up")}>👍</button>
-                  <button onClick={() => sendFeedback(m.text, "down")} style={{ marginLeft: "6px" }}>👎</button>
+                  <button onClick={() => sendFeedback(m.id, "up")}>👍</button>
+                  <button onClick={() => sendFeedback(m.id, "down")} style={{ marginLeft: "6px" }}>👎</button>
                 </div>
               </div>
             )}
