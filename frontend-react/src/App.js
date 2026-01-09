@@ -59,19 +59,17 @@ function highlightSources(answer, chunks) {
   return safe.replace(/\n/g, "<br/>");
 }
 
-async function sendFeedback(text, feedback) {
+async function sendFeedback(messageId, feedback) {
   try {
     await fetch(`${API}/api/feedback`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: text, feedback })
+      body: JSON.stringify({ id: messageId, feedback })
     });
 
     setMessages(prev =>
       prev.map(m =>
-        m.role === "bot" && m.text === text
-          ? { ...m, feedback }
-          : m
+        m.id === messageId ? { ...m, feedback } : m
       )
     );
   } catch (err) {
@@ -125,6 +123,7 @@ async function loadHistoryItem(id) {
   setMessages([
     { role: "user", text: data.question },
     {
+      id: data._id,                
       role: "bot",
       text: highlightSources(data.text, data.chunks || []),
       confidence: data.confidence || "Unknown",
