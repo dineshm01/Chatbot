@@ -2,6 +2,7 @@ from huggingface_hub import InferenceClient
 import os
 from utils.llm import call_llm
 from rapidfuzz import fuzz
+import re
 from rag_utils import (
     load_vectorstore,
     get_retriever,
@@ -10,20 +11,28 @@ from rag_utils import (
     compute_coverage
 )
 
-def extract_grounded_spans(answer, docs, threshold=75):
+
+def extract_grounded_spans(answer, docs, threshold=0.2):
     grounded = []
-    fuzzy_debug = []
+    debug = []
 
     doc_text = " ".join(d.page_content.lower() for d in docs)
-    sentences = [s.strip() for s in answer.split(".") if len(s.strip()) > 15]
+    doc_tokens = set(re.findall(r"\w+", doc_text))
+
+    sentences = [s.strip() for s in answer.split(".") if len(s.strip()) > 20]
 
     for s in sentences:
-        score = fuzz.partial_ratio(s.lower(), doc_text)
-        fuzzy_debug.append({"sentence": s[:120], "score": score})
-        if score >= threshold:
+        sent_tokens = set(re.findall(r"\w+", s.lower()))
+        if not sent_tokens:
+            continue
+
+        overlap = len(sent_tokens & doc_tokens) / len(sent_tokens)
+        debug.append({"sentence": s[:120], "overlap": round(overlap, 2)})
+
+        if overlap >= threshold:
             grounded.append(s)
 
-    return grounded, fuzzy_debug
+    return grounded, debug
     
 def generate_answer(question, mode, memory=None):
     memory = memory or []
@@ -74,7 +83,7 @@ Answer:
 
     coverage = compute_coverage(docs, answer)
 
-    grounded_sentences, fuzzy_debug = extract_grounded_spans(answer, filtered_docs, threshold=70)
+    grounded_sentences, debug = extract_grounded_spans(answer, filtered_docs, threshold=0.25)
 
 
 
@@ -87,9 +96,10 @@ Answer:
         "debug": {
             "retrieved_docs": len(filtered_docs),
             "doc_text_length": sum(len(d.page_content) for d in filtered_docs),
-            "fuzzy_scores": fuzzy_debug
+            "overlaps": debug
         }
     }
+
 
 
 
