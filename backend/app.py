@@ -161,7 +161,16 @@ def upload_file():
 @app.route("/api/feedback", methods=["POST"])
 def save_feedback():
     data = request.json or {}
-    question = data.get("question")
+    msg_id = data.get("id")
+
+    if not msg_id or feedback not in ["up", "down"]:
+        return jsonify({"error": "Invalid input"}), 400
+
+    queries.update_one(
+        {"_id": ObjectId(msg_id)},
+        {"$set": {"feedback": feedback}}
+    )
+
     feedback = data.get("feedback")
 
     if not question or feedback not in ["up", "down"]:
@@ -177,6 +186,7 @@ def save_feedback():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
