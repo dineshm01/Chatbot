@@ -79,7 +79,7 @@ def generate_answer(question, mode, memory=None, strict=False):
     prompt = f"""
     
     Conversation so far:
-    {memory}
+    {memory_text}
 
     You must follow the rules for the selected answer style.
 
@@ -117,6 +117,9 @@ def generate_answer(question, mode, memory=None, strict=False):
     - Student-friendly explanation
 
     Selected style: {mode}
+    
+    Reference:
+    {context_text}
 
     Question:
     {question}
@@ -150,6 +153,7 @@ def generate_answer(question, mode, memory=None, strict=False):
             "overlaps": debug
         }
     }
+
 
 
 
