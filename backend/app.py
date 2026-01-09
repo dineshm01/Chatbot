@@ -51,13 +51,17 @@ def ask():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+    display_text = result["text"]  
+
     record = {
         "question": q,
         "mode": mode,
-        "text": result.get("display_text", result.get("text", "")),
+        "text": display_text,
         "confidence": result.get("confidence", ""),
         "coverage": result.get("coverage", 0),
         "sources": result.get("sources", []),
+        "chunks": result.get("chunks", []),
+        "feedback": None,
         "created_at": datetime.utcnow()
     }
 
@@ -67,9 +71,9 @@ def ask():
         print("Mongo insert failed:", e)
 
     return jsonify({
-        "text": result.get("text", ""),
-        "confidence": result.get("confidence", ""),
-        "coverage": result.get("coverage", 0),
+        "text": display_text,
+        "confidence": result["confidence"],
+        "coverage": result["coverage"],
         "chunks": result.get("chunks", []),
         "sources": result.get("sources", []),
         "debug": result.get("debug", {})
@@ -173,6 +177,7 @@ def save_feedback():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
