@@ -51,7 +51,7 @@ def ask():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-    display_text = result["text"]  # raw text only  
+    display_text = result.get("display_text", result["text"])
 
     record = {
         "question": q,
@@ -66,11 +66,14 @@ def ask():
     }
 
     try:
-        queries.insert_one(record)
+        res = queries.insert_one(record)
+        record_id = str(res.inserted_id)
+        
     except Exception as e:
         print("Mongo insert failed:", e)
 
     return jsonify({
+        "id": record_id,
         "text": display_text,
         "confidence": result["confidence"],
         "coverage": result["coverage"],
@@ -177,6 +180,7 @@ def save_feedback():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
