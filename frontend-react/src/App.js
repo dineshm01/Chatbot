@@ -207,7 +207,6 @@ function handleKeyDown(e) {
   }
 }
 
-console.log("Sentence:", s, "Overlap:", overlap);
 
   return (
     <div style={{
