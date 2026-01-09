@@ -192,11 +192,13 @@ async function ask() {
 
     console.log("Received chunks:", data.chunks);
     const botMessage = {
+      id: data.id,
       role: "bot",
       text: highlightSources(data.text, data.chunks),
       confidence: data.confidence,
       coverage: data.coverage,
-      sources: data.sources
+      sources: data.sources,
+      feedback: null
     };
 
     setMessages(prev => [...prev, botMessage]);
