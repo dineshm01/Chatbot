@@ -23,23 +23,22 @@ function App() {
   setMessages([]);
 }
 
-function normalize(text) {
-  return text
-    .toLowerCase()
-    .replace(/[*_`~#>\-\n]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 function highlightSources(answer, chunks) {
-  if (!chunks || chunks.length === 0) return answer;
+  let safe = escapeHtml(answer);
 
-  let result = answer;
+  if (!chunks || chunks.length === 0) return safe;
 
   chunks.forEach(chunk => {
     if (!chunk || chunk.length < 20) return;
 
-    const cleanChunk = chunk.replace(/[*_`#]/g, "");
+    const cleanChunk = escapeHtml(chunk.replace(/[*_`#]/g, ""));
 
     const escaped = cleanChunk
       .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
@@ -47,13 +46,13 @@ function highlightSources(answer, chunks) {
 
     const regex = new RegExp(`(${escaped})`, "gi");
 
-    result = result.replace(
+    safe = safe.replace(
       regex,
       `<mark style="background:#d1fae5;padding:2px 4px;border-radius:4px">$1</mark>`
     );
   });
 
-  return result;
+  return safe.replace(/\n/g, "<br/>");
 }
 
 async function sendFeedback(text, feedback) {
