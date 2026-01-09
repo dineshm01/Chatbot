@@ -104,10 +104,18 @@ Answer:
 
     grounded_sentences, debug = extract_grounded_spans(answer, filtered_docs, threshold=0.25)
 
+    highlighted = answer.strip()
+
+    for s in grounded_sentences:
+        highlighted = highlighted.replace(
+            s,
+            f"<mark>{s}</mark>"
+        )
 
 
     return {
         "text": answer.strip(),
+        "display_text": highlighted,
         "confidence": compute_confidence(docs),
         "coverage": coverage,
         "sources": sources,
@@ -118,6 +126,7 @@ Answer:
             "overlaps": debug
         }
     }
+
 
 
 
