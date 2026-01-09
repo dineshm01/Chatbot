@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
+import remarkGfm from "remark-gfm";
 
 function App() {
   const [question, setQuestion] = useState("");
@@ -336,7 +337,17 @@ function handleKeyDown(e) {
                 color: m.role === "user" ? "white" : "black"
               }}
             >
-              {m.role === "bot" ? <ReactMarkdown rehypePlugins={[rehypeRaw]}>{m.text}</ReactMarkdown> : m.text}
+              {m.role === "bot" ? <ReactMarkdown
+                                    rehypePlugins={[rehypeRaw]}
+                                    remarkPlugins={[remarkGfm]}
+                                    components={{
+                                      mark: ({ node, ...props }) => (
+                                        <mark style={{ background: "#d1fae5", padding: "2px 4px", borderRadius: "4px" }} {...props} />
+                                      )
+                                  }}
+                                >
+                                  {m.text}
+                                </ReactMarkdown>: m.text}
               {m.role === "bot" && (
                 <div style={{ fontSize: "12px", marginTop: "4px", opacity: 0.6 }}>
                 <div>
