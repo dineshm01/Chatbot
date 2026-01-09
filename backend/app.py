@@ -32,6 +32,8 @@ def ask():
     q = data.get("question", "").strip()
     mode = data.get("mode", "Detailed")
     memory = data.get("memory", [])
+    strict = data.get("strict", False)
+
 
     if not q:
         return jsonify({"error": "Question is required"}), 400
@@ -45,7 +47,7 @@ def ask():
         })
 
     try:
-        result = generate_answer(q, mode, memory)
+        result = generate_answer(q, mode, memory, strict)
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
@@ -169,6 +171,7 @@ def save_feedback():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
