@@ -125,7 +125,7 @@ async function loadHistoryItem(id) {
     {
       id: data._id,                
       role: "bot",
-      text: highlightSources(data.text, data.chunks || []),
+      text: data.text,
       confidence: data.confidence || "Unknown",
       coverage: botCoverage,
       sources: data.sources || [],
