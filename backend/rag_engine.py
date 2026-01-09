@@ -77,47 +77,11 @@ def generate_answer(question, mode, memory=None, strict=False):
     memory_text = "\n".join(f"{m['role']}: {m['text']}" for m in memory)
 
     prompt = f"""
-    
     Conversation so far:
     {memory_text}
 
-    You must follow the rules for the selected answer style.
+    Style: {mode}
 
-    If the selected style is "Concise":
-    - Max 2 sentences
-    - Direct definition only
-
-    If the selected style is "Detailed":
-    - Start with definition
-    - Explain step-by-step
-    - Teacher style
-
-    If the selected style is "Exam":
-    - Bullet points only
-    - 2–5 mark answer
-    - No explanations
-
-    If the selected style is "ELI5":
-    - Very simple language
-    - Friendly tone
-    - No jargon
-
-    If the selected style is "Compare":
-    - Markdown table ONLY
-    - First column: Aspect
-    - Compare at least two concepts
-    - No text outside table
-
-    If the selected style is "Diagram":
-    - Explain the diagram step-by-step
-    - Use clear headings
-    - Explain flow and relationships only as shown
-    - Do NOT infer complexity, performance, or internal behavior
-    - Do NOT add theory not shown in the diagram
-    - Student-friendly explanation
-
-    Selected style: {mode}
-    
     Reference:
     {context_text}
 
@@ -126,7 +90,7 @@ def generate_answer(question, mode, memory=None, strict=False):
 
     Answer:
     """
-
+    
     answer = call_llm(prompt)
 
     sources = [
@@ -152,6 +116,7 @@ def generate_answer(question, mode, memory=None, strict=False):
             "overlaps": debug
         }
     }
+
 
 
 
