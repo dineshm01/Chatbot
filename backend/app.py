@@ -162,6 +162,7 @@ def upload_file():
 def save_feedback():
     data = request.json or {}
     msg_id = data.get("id")
+    feedback = data.get("feedback")
 
     if not msg_id or feedback not in ["up", "down"]:
         return jsonify({"error": "Invalid input"}), 400
@@ -171,21 +172,12 @@ def save_feedback():
         {"$set": {"feedback": feedback}}
     )
 
-    feedback = data.get("feedback")
-
-    if not question or feedback not in ["up", "down"]:
-        return jsonify({"error": "Invalid input"}), 400
-
-    queries.update_one(
-        {"question": question},
-        {"$set": {"feedback": feedback}}
-    )
-
     return jsonify({"message": "Feedback saved", "feedback": feedback}), 200
 
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
