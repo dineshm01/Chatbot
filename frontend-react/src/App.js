@@ -33,27 +33,26 @@ function normalize(text) {
 function highlightSources(answer, chunks) {
   if (!chunks || chunks.length === 0) return answer;
 
-  let highlighted = answer;
+  let result = answer;
 
   chunks.forEach(chunk => {
     if (!chunk || chunk.length < 20) return;
 
-    const normChunk = normalize(chunk);
-    const normAnswer = normalize(highlighted);
+    const cleanChunk = chunk.replace(/[*_`#]/g, "");
 
-    const idx = normAnswer.indexOf(normChunk);
-    if (idx === -1) return;
+    const escaped = cleanChunk
+      .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+      .replace(/\s+/g, "\\s+");
 
-    // Get approximate original slice
-    const originalSlice = highlighted.substr(idx, chunk.length);
+    const regex = new RegExp(`(${escaped})`, "gi");
 
-    highlighted = highlighted.replace(
-      originalSlice,
-      `<mark style="background:#d1fae5;padding:2px 4px;border-radius:4px">${originalSlice}</mark>`
+    result = result.replace(
+      regex,
+      `<mark style="background:#d1fae5;padding:2px 4px;border-radius:4px">$1</mark>`
     );
   });
 
-  return highlighted;
+  return result;
 }
 
 async function sendFeedback(text, feedback) {
