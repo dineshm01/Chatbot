@@ -11,6 +11,15 @@ from rag_utils import (
     compute_coverage
 )
 
+def docs_are_relevant(question, docs, threshold=60):
+    if not docs:
+        return False
+
+    doc_text = " ".join(d.page_content for d in docs).lower()
+    score = fuzz.partial_ratio(question.lower(), doc_text)
+
+    return score >= threshold
+
 
 def extract_grounded_spans(answer, docs, threshold=0.2):
     grounded = []
@@ -46,7 +55,7 @@ def generate_answer(question, mode, memory=None, strict=False):
     ]
 
     
-    if strict and not filtered_docs:
+    if strict and not docs_are_relevant(question, filtered_docs):
         return {
             "text": "❌ Strict mode: No relevant documents found. Please upload material.",
             "confidence": "Strict mode",
@@ -109,6 +118,7 @@ Answer:
             "overlaps": debug
         }
     }
+
 
 
 
