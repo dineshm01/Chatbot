@@ -54,7 +54,7 @@ def ask():
     record = {
         "question": q,
         "mode": mode,
-        "text": result.get("text", ""),
+        "text": result.get("display_text", result.get("text", "")),
         "confidence": result.get("confidence", ""),
         "coverage": result.get("coverage", 0),
         "sources": result.get("sources", []),
@@ -173,6 +173,7 @@ def save_feedback():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
