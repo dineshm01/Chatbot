@@ -194,7 +194,7 @@ async function ask() {
     console.log("Received chunks:", data.chunks);
     const botMessage = {
       role: "bot",
-      text: highlightSources(data.text, data.chunks),
+      text: data.display_text || highlightSources(data.text, data.chunks),
       confidence: data.confidence,
       coverage: data.coverage,
       sources: data.sources
