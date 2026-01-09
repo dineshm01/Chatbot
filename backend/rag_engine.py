@@ -12,16 +12,18 @@ from rag_utils import (
 
 def extract_grounded_spans(answer, docs, threshold=75):
     grounded = []
-    doc_text = " ".join(d.page_content.lower() for d in docs)
+    fuzzy_debug = []
 
+    doc_text = " ".join(d.page_content.lower() for d in docs)
     sentences = [s.strip() for s in answer.split(".") if len(s.strip()) > 15]
 
     for s in sentences:
         score = fuzz.partial_ratio(s.lower(), doc_text)
+        fuzzy_debug.append({"sentence": s[:120], "score": score})
         if score >= threshold:
             grounded.append(s)
 
-    return grounded
+    return grounded, fuzzy_debug
     
 def generate_answer(question, mode, memory=None):
     memory = memory or []
@@ -72,7 +74,8 @@ Answer:
 
     coverage = compute_coverage(docs, answer)
 
-    grounded_sentences = extract_grounded_spans(answer, filtered_docs, threshold=70)
+    grounded_sentences, fuzzy_debug = extract_grounded_spans(answer, filtered_docs, threshold=70)
+
 
 
     return {
@@ -80,8 +83,14 @@ Answer:
         "confidence": compute_confidence(docs),
         "coverage": coverage,
         "sources": sources,
-        "chunks": grounded_sentences
+        "chunks": grounded_sentences,
+        "debug": {
+            "retrieved_docs": len(filtered_docs),
+            "doc_text_length": sum(len(d.page_content) for d in filtered_docs),
+            "fuzzy_scores": fuzzy_debug
+        }
     }
+
 
 
 
