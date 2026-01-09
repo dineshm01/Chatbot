@@ -118,9 +118,6 @@ def generate_answer(question, mode, memory=None, strict=False):
 
     Selected style: {mode}
 
-    Reference:
-    {context}
-
     Question:
     {question}
 
@@ -153,6 +150,7 @@ def generate_answer(question, mode, memory=None, strict=False):
             "overlaps": debug
         }
     }
+
 
 
 
