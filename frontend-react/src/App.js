@@ -340,6 +340,7 @@ function handleKeyDown(e) {
               {m.role === "bot" ? <ReactMarkdown
                                     rehypePlugins={[rehypeRaw]}
                                     remarkPlugins={[remarkGfm]}
+                                    skipHtml={false}
                                     components={{
                                       mark: ({ node, ...props }) => (
                                         <mark style={{ background: "#d1fae5", padding: "2px 4px", borderRadius: "4px" }} {...props} />
