@@ -126,7 +126,7 @@ async function loadHistoryItem(id) {
     { role: "user", text: data.question },
     {
       role: "bot",
-      text: data.text || "No answer found.",
+      text: highlightSources(data.text, data.chunks || []),
       confidence: data.confidence || "Unknown",
       coverage: botCoverage,
       sources: data.sources || [],
@@ -194,7 +194,7 @@ async function ask() {
     console.log("Received chunks:", data.chunks);
     const botMessage = {
       role: "bot",
-      text: data.display_text || highlightSources(data.text, data.chunks),
+      text: highlightSources(data.text, data.chunks),
       confidence: data.confidence,
       coverage: data.coverage,
       sources: data.sources
