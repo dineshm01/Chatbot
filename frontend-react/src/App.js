@@ -65,6 +65,14 @@ async function sendFeedback(text, feedback) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question: text, feedback })
     });
+
+    setMessages(prev =>
+      prev.map(m =>
+        m.role === "bot" && m.text === text
+          ? { ...m, feedback }
+          : m
+      )
+    );
   } catch (err) {
     console.error("Feedback failed", err);
   }
@@ -120,7 +128,8 @@ async function loadHistoryItem(id) {
       text: data.text || "No answer found.",
       confidence: data.confidence || "Unknown",
       coverage: botCoverage,
-      sources: data.sources || []
+      sources: data.sources || [],
+      feedback: data.feedback || null
     }
   ]);
 
@@ -345,6 +354,16 @@ function handleKeyDown(e) {
               )}
               {m.role === "bot" && (
                 <div style={{ fontSize: "12px", marginTop: "4px", opacity: 0.6 }}>
+                {m.feedback && (
+                  <div style={{
+                    marginTop: "4px",
+                    fontSize: "12px",
+                    color: m.feedback === "up" ? "green" : "red",
+                    fontWeight: "bold"
+              }}>
+                {m.feedback === "up" ? "✔ Marked helpful" : "✖ Marked wrong"}
+            </div>
+          )}
                 <div>
                   {m.confidence} |{" "}
                   {m.coverage && typeof m.coverage === "object"
