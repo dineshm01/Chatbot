@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 
 function App() {
+  const [strictMode, setStrictMode] = useState(false);
   const [question, setQuestion] = useState("");
   const [mode, setMode] = useState("Detailed");
   const [loading, setLoading] = useState(false);
@@ -177,7 +178,7 @@ async function ask() {
     const res = await fetch(`${API}/api/ask`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, mode, memory })
+      body: JSON.stringify({ question, mode, memory, strict: strictMode })
     });
 
     let data;
@@ -273,6 +274,14 @@ function handleKeyDown(e) {
           <option>Compare</option>
         </select>
 
+        <label style={{ marginLeft: "10px", fontSize: "14px" }}>
+          <input
+            type="checkbox"
+            checked={strictMode}
+            onChange={() => setStrictMode(!strictMode)}
+          /> Strict mode (only answer from docs)
+        </label>
+
         <br /><br />
 
         <button
@@ -354,16 +363,22 @@ function handleKeyDown(e) {
               )}
               {m.role === "bot" && (
                 <div style={{ fontSize: "12px", marginTop: "4px", opacity: 0.6 }}>
+                  {m.confidence === "Strict mode" && (
+                    <div style={{ color: "red", fontWeight: "bold", fontSize: "12px" }}>
+                      ⚠ Strict mode blocked this answer
+                    </div>
+                  )}
+
                 {m.feedback && (
                   <div style={{
                     marginTop: "4px",
                     fontSize: "12px",
                     color: m.feedback === "up" ? "green" : "red",
                     fontWeight: "bold"
-              }}>
-                {m.feedback === "up" ? "✔ Marked helpful" : "✖ Marked wrong"}
-            </div>
-          )}
+                  }}>
+                    {m.feedback === "up" ? "✔ Marked helpful" : "✖ Marked wrong"}
+                  </div>
+                )}
                 <div>
                   {m.confidence} |{" "}
                   {m.coverage && typeof m.coverage === "object"
