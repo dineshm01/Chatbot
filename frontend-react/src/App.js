@@ -30,7 +30,11 @@ function escapeHtml(str) {
 function highlightSources(answer, chunks) {
   let safe = escapeHtml(answer);
 
-  if (!chunks || chunks.length === 0) return safe;
+  safe = convertMarkdownBold(safe);
+
+  if (!chunks || chunks.length === 0) {
+    return safe.replace(/\n/g, "<br/>");
+  }
 
   chunks.forEach(chunk => {
     if (!chunk || chunk.length < 20) return;
@@ -45,7 +49,7 @@ function highlightSources(answer, chunks) {
 
     safe = safe.replace(
       regex,
-      `<mark style="background:#d1fae5;padding:2px 4px;border-radius:4px">$1</mark>`
+      `<mark style="background:#d1fae5;padding:2px 4px;border-radius:4px;line-height:1.6;display:inline-block">$1</mark>`
     );
   });
 
