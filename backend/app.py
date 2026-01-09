@@ -86,6 +86,8 @@ def get_history():
     # convert ObjectId to string for JSON
     for item in data:
         item["_id"] = str(item["_id"])
+        item["feedback"] = item.get("feedback")
+
 
         # normalize coverage format
         if isinstance(item.get("coverage"), int):
@@ -156,7 +158,7 @@ def upload_file():
 def save_feedback():
     data = request.json or {}
     question = data.get("question")
-    feedback = data.get("feedback")  # "up" or "down"
+    feedback = data.get("feedback")
 
     if not question or feedback not in ["up", "down"]:
         return jsonify({"error": "Invalid input"}), 400
@@ -166,11 +168,12 @@ def save_feedback():
         {"$set": {"feedback": feedback}}
     )
 
-    return jsonify({"message": "Feedback saved"}), 200
+    return jsonify({"message": "Feedback saved", "feedback": feedback}), 200
 
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
