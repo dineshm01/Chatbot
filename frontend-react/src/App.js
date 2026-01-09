@@ -20,17 +20,22 @@ function App() {
   setMessages([]);
 }
 
-function escapeHtml(str) {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+function convertMarkdownBold(text) {
+  return text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 }
 
 function highlightSources(answer, chunks) {
-  let safe = escapeHtml(answer);
+  let safe = answer;
 
+  // Convert markdown bold
   safe = convertMarkdownBold(safe);
+
+  // Escape everything except our allowed tags
+  safe = safe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/&lt;(\/?(mark|strong))&gt;/g, "<$1>");
 
   if (!chunks || chunks.length === 0) {
     return safe.replace(/\n/g, "<br/>");
@@ -39,7 +44,7 @@ function highlightSources(answer, chunks) {
   chunks.forEach(chunk => {
     if (!chunk || chunk.length < 20) return;
 
-    const cleanChunk = escapeHtml(chunk.replace(/[*_`#]/g, ""));
+    const cleanChunk = chunk.replace(/[*_`#]/g, "");
 
     const escaped = cleanChunk
       .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
@@ -47,10 +52,7 @@ function highlightSources(answer, chunks) {
 
     const regex = new RegExp(`(${escaped})`, "gi");
 
-    safe = safe.replace(
-      regex,
-      `<mark style="background:#d1fae5;padding:2px 4px;border-radius:4px;line-height:1.6;display:inline-block">$1</mark>`
-    );
+    safe = safe.replace(regex, `<mark>$1</mark>`);
   });
 
   return safe.replace(/\n/g, "<br/>");
