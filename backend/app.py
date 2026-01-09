@@ -51,7 +51,7 @@ def ask():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-    display_text = result["text"]  
+    display_text = result.get("display_text") or result["text"]  
 
     record = {
         "question": q,
@@ -177,6 +177,7 @@ def save_feedback():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
