@@ -69,7 +69,8 @@ def ask():
         "confidence": result["confidence"],
         "coverage": result["coverage"],
         "chunks": result.get("chunks", []),
-        "sources": result.get("sources", [])
+        "sources": result.get("sources", []),
+        "debug": result.get("debug", {})
     })
 
 @app.route("/api/history", methods=["GET"])
@@ -168,6 +169,7 @@ def save_feedback():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
