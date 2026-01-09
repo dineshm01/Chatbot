@@ -40,7 +40,7 @@ def generate_answer(question, mode, memory=None, strict=False):
     retriever = get_retriever()
     docs = retriever.invoke(question) if retriever else []
 
-    if strict and not docs:
+if strict and not filtered_docs:
         return {
             "text": "❌ Strict mode: No relevant documents found. Please upload material.",
             "confidence": "Strict mode",
@@ -108,6 +108,7 @@ Answer:
             "overlaps": debug
         }
     }
+
 
 
 
