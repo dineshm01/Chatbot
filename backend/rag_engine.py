@@ -28,7 +28,7 @@ def extract_grounded_spans(answer, docs, threshold=0.2):
     doc_text = " ".join(d.page_content.lower() for d in docs)
     doc_tokens = set(re.findall(r"\w+", doc_text))
 
-    sentences = [s.strip() for s in answer.split(".") if len(s.strip()) > 20]
+    sentences = [s.strip() for s in re.split(r"[.!?]", answer) if len(s.strip()) > 40]
 
     for s in sentences:
         sent_tokens = set(re.findall(r"\w+", s.lower()))
@@ -77,19 +77,55 @@ def generate_answer(question, mode, memory=None, strict=False):
     memory_text = "\n".join(f"{m['role']}: {m['text']}" for m in memory)
 
     prompt = f"""
-Conversation so far:
-{memory_text}
+    
+    Conversation so far:
+    {memory}
 
-Style: {mode}
+    You must follow the rules for the selected answer style.
 
-Reference:
-{context_text}
+    If the selected style is "Concise":
+    - Max 2 sentences
+    - Direct definition only
 
-Question:
-{question}
+    If the selected style is "Detailed":
+    - Start with definition
+    - Explain step-by-step
+    - Teacher style
 
-Answer:
-"""
+    If the selected style is "Exam":
+    - Bullet points only
+    - 2–5 mark answer
+    - No explanations
+
+    If the selected style is "ELI5":
+    - Very simple language
+    - Friendly tone
+    - No jargon
+
+    If the selected style is "Compare":
+    - Markdown table ONLY
+    - First column: Aspect
+    - Compare at least two concepts
+    - No text outside table
+
+    If the selected style is "Diagram":
+    - Explain the diagram step-by-step
+    - Use clear headings
+    - Explain flow and relationships only as shown
+    - Do NOT infer complexity, performance, or internal behavior
+    - Do NOT add theory not shown in the diagram
+    - Student-friendly explanation
+
+    Selected style: {mode}
+
+    Reference:
+    {context}
+
+    Question:
+    {question}
+
+    Answer:
+    """
 
     answer = call_llm(prompt)
 
@@ -99,18 +135,9 @@ Answer:
     ]
 
     
-
     coverage = compute_coverage(docs, answer)
 
-    grounded_sentences, debug = extract_grounded_spans(answer, filtered_docs, threshold=0.25)
-
-    highlighted = answer.strip()
-
-    for s in grounded_sentences:
-        highlighted = highlighted.replace(
-            s,
-            f"<mark>{s}</mark>"
-        )
+    grounded_sentences, debug = extract_grounded_spans(answer, filtered_docs, threshold=0.55)
 
 
     return {
@@ -126,6 +153,7 @@ Answer:
             "overlaps": debug
         }
     }
+
 
 
 
