@@ -11,6 +11,9 @@ from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 from io import BytesIO
+import bcrypt
+from auth import create_token, verify_token
+
 
 
 UPLOAD_FOLDER = "uploads"
@@ -26,12 +29,61 @@ if not MONGO_URI:
 mongo_client = MongoClient(MONGO_URI)
 db = mongo_client["chatbot"]
 queries = db["queries"]
+users = db["users"]
+
+def require_auth(fn):
+    def wrapper(*args, **kwargs):
+        auth = request.headers.get("Authorization", "")
+        if not auth.startswith("Bearer "):
+            return jsonify({"error": "Missing token"}), 401
+
+        token = auth.split(" ")[1]
+        try:
+            payload = verify_token(token)
+            request.user_id = payload["user_id"]
+        except:
+            return jsonify({"error": "Invalid token"}), 401
+
+        return fn(*args, **kwargs)
+    wrapper.__name__ = fn.__name__
+    return wrapper
+
 
 @app.route("/")
 def home():
     return "Backend running"
 
+@app.route("/api/register", methods=["POST"])
+def register():
+    data = request.json
+    email = data.get("email")
+    password = data.get("password")
+
+    if users.find_one({"email": email}):
+        return jsonify({"error": "User already exists"}), 400
+
+    hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+    user = users.insert_one({"email": email, "password": hashed})
+
+    token = create_token(user.inserted_id)
+    return jsonify({"token": token})
+
+@app.route("/api/login", methods=["POST"])
+def login():
+    data = request.json
+    email = data.get("email")
+    password = data.get("password")
+
+    user = users.find_one({"email": email})
+    if not user or not bcrypt.checkpw(password.encode(), user["password"]):
+        return jsonify({"error": "Invalid credentials"}), 401
+
+    token = create_token(user["_id"])
+    return jsonify({"token": token})
+
+
 @app.route("/api/ask", methods=["POST"])
+@require_auth
 def ask():
     data = request.json or {}
     q = data.get("question", "").strip()
@@ -59,6 +111,7 @@ def ask():
     display_text = result.get("display_text", result["text"])
 
     record = {
+        "user_id": request.user_id,
         "question": q,
         "mode": mode,
         "text": display_text,
@@ -89,9 +142,10 @@ def ask():
     })
 
 @app.route("/api/history", methods=["GET"])
+@require_auth
 def get_history():
     data = list(
-        queries.find()
+        queries.find({"user_id": request.user_id})
         .sort("created_at", -1)
         .limit(50)
     )
@@ -114,9 +168,10 @@ def get_history():
     return jsonify(data)
 
 @app.route("/api/history/id/<id>", methods=["GET"])
+@require_auth
 def get_history_by_id(id):
     try:
-        item = queries.find_one({"_id": ObjectId(id)}, {"_id": 0})
+        item = queries.find_one({"_id": ObjectId(id), "user_id": request.user_id}, {"_id": 0})
         if not item:
             return jsonify({"error": "Not found"}), 404
         return jsonify(item)
@@ -124,8 +179,13 @@ def get_history_by_id(id):
         return jsonify({"error": "Invalid id"}), 400
     
 @app.route("/api/history/<question>", methods=["GET"])
+@require_auth
 def get_history_item(question):
-    item = queries.find_one({"question": {"$regex": f"^{question}$", "$options": "i"}}, {"_id": 0})
+    item = queries.find_one({
+        "question": {"$regex": f"^{question}$", "$options": "i"},
+        "user_id": request.user_id
+    }, {"_id": 0})
+    
     if not item:
         return jsonify({"error": "Not found"}), 404
 
@@ -135,6 +195,7 @@ def get_history_item(question):
     return jsonify(item)
 
 @app.route("/api/history/search", methods=["GET"])
+@require_auth
 def search_history():
     q = request.args.get("q", "").strip()
 
@@ -142,6 +203,7 @@ def search_history():
         return jsonify([])
 
     results = list(queries.find({
+        "user_id": request.user_id,
         "$or": [
             {"question": {"$regex": q, "$options": "i"}},
             {"text": {"$regex": q, "$options": "i"}},
@@ -155,6 +217,7 @@ def search_history():
     return jsonify(results)
 
 @app.route("/api/history/<question>", methods=["DELETE"])
+@require_auth
 def delete_history_item(question):
     result = queries.delete_one({"question": {"$regex": f"^{question}$", "$options": "i"}})
     if result.deleted_count == 0:
@@ -162,11 +225,13 @@ def delete_history_item(question):
     return jsonify({"message": "Deleted"}), 200
 
 @app.route("/api/history", methods=["DELETE"])
+@require_auth
 def delete_all_history():
     queries.delete_many({})
     return jsonify({"message": "All history deleted"}), 200
     
 @app.route("/api/upload", methods=["POST"])
+@require_auth
 def upload_file():
     try:
         if "file" not in request.files:
@@ -190,6 +255,7 @@ def upload_file():
         return jsonify({"error": repr(e)}), 500
 
 @app.route("/api/feedback", methods=["POST"])
+@require_auth
 def save_feedback():
     data = request.json or {}
     msg_id = data.get("id")
@@ -206,6 +272,7 @@ def save_feedback():
     return jsonify({"message": "Feedback saved", "feedback": feedback}), 200
 
 @app.route("/api/bookmark", methods=["POST"])
+@require_auth
 def bookmark():
     data = request.json or {}
     msg_id = data.get("id")
@@ -223,15 +290,18 @@ def bookmark():
 
 
 @app.route("/api/analytics", methods=["GET"])
+@require_auth
 def analytics():
-    total = queries.count_documents({})
-
-    helpful = queries.count_documents({"feedback": "up"})
-    wrong = queries.count_documents({"feedback": "down"})
-    bookmarked = queries.count_documents({"bookmarked": True})
+    uid = request.user_id
+    
+    total = queries.count_documents({"user_id": uid})
+    helpful = queries.count_documents({"user_id": uid, "feedback": "up"})
+    wrong = queries.count_documents({"user_id": uid, "feedback": "down"})
+    bookmarked = queries.count_documents({"user_id": uid, "bookmarked": True})
 
     most_questions = list(
         queries.aggregate([
+            {"$match": {"user_id": uid}},
             {"$group": {"_id": "$question", "count": {"$sum": 1}}},
             {"$sort": {"count": -1}},
             {"$limit": 5}
@@ -240,6 +310,7 @@ def analytics():
 
     most_sources = list(
         queries.aggregate([
+            {"$match": {"user_id": uid}},
             {"$unwind": "$sources"},
             {"$group": {"_id": "$sources.source", "count": {"$sum": 1}}},
             {"$sort": {"count": -1}},
@@ -260,8 +331,9 @@ def analytics():
     })
 
 @app.route("/api/export", methods=["GET"])
+@require_auth
 def export_history_pdf():
-    items = list(queries.find().sort("created_at", 1))
+    items = list(queries.find({"user_id": request.user_id}).sort("created_at", 1))
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4)
@@ -294,42 +366,4 @@ def export_history_pdf():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
