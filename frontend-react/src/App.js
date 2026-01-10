@@ -517,11 +517,19 @@ function handleKeyDown(e) {
               }}
             >
               <span
-                style={{ cursor: "pointer" }}
+                style={{ cursor: "pointer", flex: 1 }}
                 onClick={() => loadHistoryItem(item._id)}
               >
                 {item.bookmarked ? "⭐ " : ""}{item.question}
               </span>
+                
+              <button 
+                onClick={() => toggleBookmark(item._id, !item.bookmarked)}
+                style={{ marginRight: "6px" }}
+              >
+                {item.bookmarked ? "⭐ Bookmarked" : "☆ Bookmark"}
+              </button>
+                
               <button
                 onClick={() => deleteHistoryItem(item.question)}
                 style={{
