@@ -181,7 +181,7 @@ def save_feedback():
     return jsonify({"message": "Feedback saved", "feedback": feedback}), 200
 
 @app.route("/api/bookmark", methods=["POST"])
-def toggle_bookmark():
+def bookmark():
     data = request.json or {}
     msg_id = data.get("id")
     value = data.get("value")
@@ -194,7 +194,7 @@ def toggle_bookmark():
         {"$set": {"bookmarked": value}}
     )
 
-    return jsonify({"message": "Bookmark updated", "bookmarked": value}), 200
+    return jsonify({"message": "Bookmark updated", "value": value})
 
 
 @app.route("/api/analytics", methods=["GET"])
@@ -238,6 +238,7 @@ def analytics():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
