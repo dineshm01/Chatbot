@@ -23,6 +23,13 @@ function App() {
   setMessages([]);
 }
 
+async function loadAnalytics() {
+  const res = await fetch(`${API}/api/analytics`);
+  const data = await res.json();
+  setAnalytics(data);
+  setShowAnalytics(true);
+}
+  
 function convertMarkdownBold(text) {
   return text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 }
@@ -331,6 +338,10 @@ function handleKeyDown(e) {
         >
           Show History
         </button>
+        
+        <button onClick={loadAnalytics} style={{ marginLeft: "10px" }}>
+          Show Analytics
+        </button>
 
         <input 
           type="file"
@@ -484,6 +495,43 @@ function handleKeyDown(e) {
           ))}
         </div>
       )}
+      {showAnalytics && analytics && (
+        <div style={{
+          position: "fixed",
+          left: 0,
+          top: 0,
+          height: "100vh",
+          width: "300px",
+          background: "white",
+          borderRight: "1px solid #ddd",
+          padding: "16px",
+          overflowY: "auto",
+          zIndex: 1000
+        }}>
+          <h3>Analytics</h3>
+          <p>Total Q&A: {analytics.total}</p>
+          <p>👍 Helpful: {analytics.helpful}</p>
+          <p>👎 Wrong: {analytics.wrong}</p>
+          <p>⭐ Bookmarked: {analytics.bookmarked}</p>
+          <p>Hallucination rate: {analytics.hallucination_rate}%</p>
+
+          <h4>Top Questions</h4>
+          <ul>
+            {analytics.top_questions.map((q, i) => (
+              <li key={i}>{q._id} ({q.count})</li>
+            ))}
+          </ul>
+
+            <h4>Top Sources</h4>
+            <ul>
+              {analytics.top_sources.map((s, i) => (
+                <li key={i}>{s._id} ({s.count})</li>
+              ))}
+            </ul>
+
+            <button onClick={() => setShowAnalytics(false)}>Close</button>
+          </div>
+        )}
     </div>
   );
 }
