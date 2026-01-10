@@ -277,9 +277,11 @@ function handleKeyDown(e) {
     ask();
   }
 }
-  if (!localStorage.getItem("token")) {
-    return <Login onLogin={() => window.location.reload()} />;
-  }
+const token = localStorage.getItem("token");
+
+if (!token || token === "undefined" || token === "null") {
+  return <Login onLogin={() => window.location.reload()} />;
+}
 
   return (
     <div style={{
