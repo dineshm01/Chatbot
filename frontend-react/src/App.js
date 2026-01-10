@@ -10,6 +10,8 @@ function App() {
   const [showHistoryPanel, setShowHistoryPanel] = useState(false);
   const [historyItems, setHistoryItems] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [analytics, setAnalytics] = useState(null);
+  const [showAnalytics, setShowAnalytics] = useState(false);
   const API = process.env.REACT_APP_API_URL;
   if (!API) {
   console.error("REACT_APP_API_URL is not defined");
