@@ -86,6 +86,20 @@ async function sendFeedback(messageId, feedback) {
   }
 }
 
+async function toggleBookmark(id, value) {
+  await fetch(`${API}/api/bookmark`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, value })
+  });
+
+  setMessages(prev =>
+    prev.map(m =>
+      m.id === id ? { ...m, bookmarked: value } : m
+    )
+  );
+}
+
 async function uploadFile(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -207,7 +221,8 @@ async function ask() {
       confidence: data.confidence,
       coverage: data.coverage,
       sources: data.sources,
-      feedback: null
+      feedback: null,
+      bookmarked: false      
     };
 
     setMessages(prev => [...prev, botMessage]);
@@ -413,6 +428,9 @@ function handleKeyDown(e) {
                     : "Coverage: N/A"}
                 </div>
                 <div style={{ marginTop: "4px" }}>
+                  <button onClick={() => toggleBookmark(m.id, !m.bookmarked)}>
+                    {m.bookmarked ? "⭐ Bookmarked" : "☆ Bookmark"}
+                  </button>
                   <button onClick={() => sendFeedback(m.id, "up")}>👍</button>
                   <button onClick={() => sendFeedback(m.id, "down")} style={{ marginLeft: "6px" }}>👎</button>
                 </div>
@@ -489,7 +507,7 @@ function handleKeyDown(e) {
                 style={{ cursor: "pointer" }}
                 onClick={() => loadHistoryItem(item._id)}
               >
-                {item.question}
+                {item.bookmarked ? "⭐ " : ""}{item.question}
               </span>
               <button
                 onClick={() => deleteHistoryItem(item.question)}
