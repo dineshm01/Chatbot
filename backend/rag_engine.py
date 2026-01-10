@@ -72,7 +72,7 @@ def generate_answer(question, mode, memory=None, strict=False):
                 "coverage": {"grounded": 0, "general": 0},
                 "sources": [],
                 "chunks": []
-        }    
+            }    
             
     context_text = "" if mode == "Diagram" else truncate_docs(filtered_docs)
 
@@ -140,6 +140,7 @@ def generate_answer(question, mode, memory=None, strict=False):
             "overlaps": debug
         }
     }
+
 
 
 
