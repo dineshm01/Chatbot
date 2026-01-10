@@ -219,7 +219,10 @@ def search_history():
 @app.route("/api/history/<question>", methods=["DELETE"])
 @require_auth
 def delete_history_item(question):
-    result = queries.delete_one({"question": {"$regex": f"^{question}$", "$options": "i"}})
+    result = queries.delete_one({
+        "question": {"$regex": f"^{question}$", "$options": "i"},
+        "user_id": request.user_id
+    })
     if result.deleted_count == 0:
         return jsonify({"error": "Not found"}), 404
     return jsonify({"message": "Deleted"}), 200
@@ -366,4 +369,5 @@ def export_history_pdf():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
