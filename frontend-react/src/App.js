@@ -358,15 +358,7 @@ function handleKeyDown(e) {
           type="file"
           onChange={uploadFile}
           disabled={uploading}
-          style={{ 
-            marginLeft: "10px",
-            padding: "10px 20px",
-            fontSize: "15px",
-            borderRadius: "6px",
-            border: "1px solid #ddd",
-            background: "white",
-            cursor: "pointer" 
-          }}
+          style={{marginLeft: "10px"}}
         />
 
         {uploading && <span style={{ marginLeft: "10px" }}>Uploading...</span>}
