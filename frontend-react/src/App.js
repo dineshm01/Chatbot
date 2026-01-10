@@ -511,6 +511,41 @@ function handleKeyDown(e) {
           zIndex: 1000
         }}>
           <h3>History</h3>
+          <input
+            type="text"
+            placeholder="Search history..."
+            onChange={async (e) => {
+              const q = e.target.value;
+              if (!q) {
+                loadHistoryPanel();
+                return;
+              }
+
+              const res = await fetch(`${API}/api/history/search?q=${encodeURIComponent(q)}`);
+              const data = await res.json();
+              setHistoryItems(data);
+            }}
+            style={{
+              width: "100%",
+              padding: "6px",
+              marginBottom: "10px",
+              border: "1px solid #ddd",
+              borderRadius: "4px"
+            }}
+          />
+          <label style={{ fontSize: "12px" }}>
+            <input
+              type="checkbox"
+              onChange={(e) => {
+                if (e.target.checked) {
+                  setHistoryItems(prev => prev.filter(i => i.bookmarked));
+                } else {
+                  loadHistoryPanel();
+                }
+              }}
+            /> Show only bookmarked
+          </label>
+  
           <div style={{ marginBottom: "8px" }}>
             <button onClick={() => setShowHistoryPanel(false)}>Close</button>
             <button 
