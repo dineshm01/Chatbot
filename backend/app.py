@@ -56,14 +56,23 @@ def home():
 @app.route("/api/register", methods=["POST"])
 def register():
     data = request.json
+    username = data.get("username")
     email = data.get("email")
     password = data.get("password")
 
-    if users.find_one({"email": email}):
-        return jsonify({"error": "User already exists"}), 400
+    if not username or not email or not password:
+        return jsonify({"error": "All fields required"}), 400
+
+    if users.find_one({"username": username}):
+        return jsonify({"error": "Username already exists"}), 400
 
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
-    user = users.insert_one({"email": email, "password": hashed})
+
+    user = users.insert_one({
+        "username": username,
+        "email": email,
+        "password": hashed
+    })
 
     token = create_token(user.inserted_id)
     return jsonify({"token": token})
@@ -71,10 +80,11 @@ def register():
 @app.route("/api/login", methods=["POST"])
 def login():
     data = request.json
-    email = data.get("email")
+    username = data.get("username")
     password = data.get("password")
 
-    user = users.find_one({"email": email})
+    user = users.find_one({"username": username})
+
     if not user or not bcrypt.checkpw(password.encode(), user["password"]):
         return jsonify({"error": "Invalid credentials"}), 401
 
@@ -369,5 +379,6 @@ def export_history_pdf():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
