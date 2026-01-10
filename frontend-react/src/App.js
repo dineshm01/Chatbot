@@ -262,6 +262,16 @@ async function ask() {
     setMessages(prev => [...prev, botMessage]);
   } catch (err) {
       console.error(err);
+      if (
+        err.message?.includes("401") ||
+        err.message?.toLowerCase().includes("unauthorized") ||
+        err.message?.toLowerCase().includes("invalid token")
+      ) {
+        localStorage.removeItem("token");
+        alert("Session expired. Please login again.");
+        window.location.reload();
+        return;
+      }
       setMessages(prev => [
         ...prev,
         { role: "bot", text: `⚠️ ${err.message || "Error contacting server."}` }
