@@ -279,9 +279,10 @@ function handleKeyDown(e) {
 }
 const token = localStorage.getItem("token");
 
-if (!token || token === "undefined" || token === "null") {
+if (!token || token === "undefined" || token === "null" || token.length < 10) {
   return <Login onLogin={() => window.location.reload()} />;
 }
+
 
   return (
     <div style={{
@@ -421,6 +422,23 @@ if (!token || token === "undefined" || token === "null") {
           Export PDF
         </button>
 
+        <button
+          onClick={() => {
+            localStorage.removeItem("token");
+            window.location.reload();
+          }}
+          style={{
+            marginLeft: "10px",
+            padding: "10px 20px",
+            fontSize: "15px",
+            borderRadius: "6px",
+            border: "1px solid #ddd",
+            background: "white",
+            cursor: "pointer"
+          }}
+        >
+          Logout
+        </button>
 
         <input 
           type="file"
