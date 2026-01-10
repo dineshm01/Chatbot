@@ -16,6 +16,10 @@ function App() {
   if (!API) {
   console.error("REACT_APP_API_URL is not defined");
 }
+  const authHeaders = () => ({
+  "Content-Type": "application/json",
+  "Authorization": `Bearer ${localStorage.getItem("token")}`
+});
   useEffect(() => {
   chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
 }, [messages]);
@@ -24,7 +28,10 @@ function App() {
 }
 
 async function loadAnalytics() {
-  const res = await fetch(`${API}/api/analytics`);
+  const res = await fetch(`${API}/api/analytics`, {
+    headers: authHeaders()
+  });
+
   const data = await res.json();
   setAnalytics(data);
   setShowAnalytics(true);
@@ -72,7 +79,7 @@ async function sendFeedback(messageId, feedback) {
   try {
     await fetch(`${API}/api/feedback`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders(),
       body: JSON.stringify({ id: messageId, feedback })
     });
 
@@ -89,7 +96,7 @@ async function sendFeedback(messageId, feedback) {
 async function toggleBookmark(id, value) {
   await fetch(`${API}/api/bookmark`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
     body: JSON.stringify({ id, value })
   });
 
@@ -124,6 +131,9 @@ async function uploadFile(e) {
   try {
     const res = await fetch(`${API}/api/upload`, {
       method: "POST",
+      headers: {
+        "Authorization": `Bearer ${localStorage.getItem("token")}`
+      },
       body: formData
     });
 
@@ -146,7 +156,10 @@ async function uploadFile(e) {
 
 
 async function loadHistoryItem(id) {
-  const res = await fetch(`${API}/api/history/id/${id}`);
+  const res = await fetch(`${API}/api/history/id/${id}`, {
+    headers: authHeaders()
+  });
+
   const data = await res.json();
 
   const botCoverage =
@@ -174,7 +187,9 @@ async function loadHistoryItem(id) {
 
 
 async function loadHistoryPanel() {
-  const res = await fetch(`${API}/api/history`);
+  const res = await fetch(`${API}/api/history`, {
+    headers: authHeaders()
+  });
   const data = await res.json();
   setHistoryItems(data);
   setShowHistoryPanel(true);
@@ -184,7 +199,8 @@ async function deleteHistoryItem(q) {
   if (!window.confirm("Delete this item?")) return;
 
   await fetch(`${API}/api/history/${encodeURIComponent(q)}`, {
-    method: "DELETE"
+    method: "DELETE",
+    headers: authHeaders()
   });
 
   setHistoryItems(prev => prev.filter(item => item.question !== q));
@@ -193,7 +209,11 @@ async function deleteHistoryItem(q) {
 async function deleteAllHistory() {
   if (!window.confirm("Delete ALL history?")) return;
 
-  await fetch(`${API}/api/history`, { method: "DELETE" });
+  await fetch(`${API}/api/history`, {
+    method: "DELETE",
+    headers: authHeaders()
+  });
+
   setHistoryItems([]);
   setMessages([]);
 }
@@ -212,7 +232,7 @@ async function ask() {
 
     const res = await fetch(`${API}/api/ask`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders(),
       body: JSON.stringify({ question, mode, memory, strict: strictMode })
     });
 
@@ -257,7 +277,9 @@ function handleKeyDown(e) {
     ask();
   }
 }
-
+  if (!localStorage.getItem("token")) {
+    return <Login onLogin={() => window.location.reload()} />;
+  }
 
   return (
     <div style={{
@@ -383,7 +405,7 @@ function handleKeyDown(e) {
         </button>
 
         <button
-          onClick={() => window.open(`${API}/api/export`, "_blank")}
+          onClick={() => window.open(`${API}/api/export?token=${localStorage.getItem("token")}`, "_blank")}
           style={{ 
             marginLeft: "10px",
             padding: "10px 20px",
@@ -521,7 +543,9 @@ function handleKeyDown(e) {
                 return;
               }
 
-              const res = await fetch(`${API}/api/history/search?q=${encodeURIComponent(q)}`);
+              const res = await fetch(`${API}/api/history/search?q=${encodeURIComponent(q)}`, {
+                headers: authHeaders()
+              });
               const data = await res.json();
               setHistoryItems(data);
             }}
