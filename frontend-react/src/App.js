@@ -93,11 +93,24 @@ async function toggleBookmark(id, value) {
     body: JSON.stringify({ id, value })
   });
 
+  // Update chat messages
   setMessages(prev =>
     prev.map(m =>
       m.id === id ? { ...m, bookmarked: value } : m
     )
   );
+
+  // Update history panel items
+  setHistoryItems(prev =>
+    prev.map(item =>
+      item._id === id ? { ...item, bookmarked: value } : item
+    )
+  );
+
+  // Refresh analytics if open
+  if (showAnalytics) {
+    loadAnalytics();
+  }
 }
 
 async function uploadFile(e) {
