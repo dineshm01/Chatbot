@@ -33,11 +33,20 @@ users = db["users"]
 
 def require_auth(fn):
     def wrapper(*args, **kwargs):
+        token = None
+
+        # 1️⃣ Try Authorization header
         auth = request.headers.get("Authorization", "")
-        if not auth.startswith("Bearer "):
+        if auth.startswith("Bearer "):
+            token = auth.split(" ")[1]
+
+        # 2️⃣ Try query param
+        if not token:
+            token = request.args.get("token")
+
+        if not token:
             return jsonify({"error": "Missing token"}), 401
 
-        token = auth.split(" ")[1]
         try:
             payload = verify_token(token)
             request.user_id = payload["user_id"]
@@ -45,8 +54,10 @@ def require_auth(fn):
             return jsonify({"error": "Invalid token"}), 401
 
         return fn(*args, **kwargs)
+
     wrapper.__name__ = fn.__name__
     return wrapper
+
 
 
 @app.route("/")
@@ -379,6 +390,7 @@ def export_history_pdf():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
