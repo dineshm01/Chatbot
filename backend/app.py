@@ -134,6 +134,26 @@ def get_history_item(question):
 
     return jsonify(item)
 
+@app.route("/api/history/search", methods=["GET"])
+def search_history():
+    q = request.args.get("q", "").strip()
+
+    if not q:
+        return jsonify([])
+
+    results = list(queries.find({
+        "$or": [
+            {"question": {"$regex": q, "$options": "i"}},
+            {"text": {"$regex": q, "$options": "i"}},
+            {"sources.source": {"$regex": q, "$options": "i"}}
+        ]
+    }).sort("created_at", -1).limit(50))
+
+    for item in results:
+        item["_id"] = str(item["_id"])
+
+    return jsonify(results)
+
 @app.route("/api/history/<question>", methods=["DELETE"])
 def delete_history_item(question):
     result = queries.delete_one({"question": {"$regex": f"^{question}$", "$options": "i"}})
@@ -271,11 +291,10 @@ def export_history_pdf():
         "Content-Type": "application/pdf",
         "Content-Disposition": "attachment; filename=chat_history.pdf"
     }
-
-
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
