@@ -55,15 +55,25 @@ def generate_answer(question, mode, memory=None, strict=False):
     ]
 
     
-    if strict and not docs_are_relevant(question, filtered_docs):
-        return {
-            "text": "❌ Strict mode: No relevant documents found. Please upload material.",
-            "confidence": "Strict mode",
-            "coverage": {"grounded": 0, "general": 0},
-            "sources": [],
-            "chunks": []
-        }
+    if strict:
+        if not filtered_docs:
+            return {
+                "text": "❌ Strict mode: No documents available. Upload material first.",
+                "confidence": "Strict mode",
+                "coverage": {"grounded": 0, "general": 0},
+                "sources": [],
+                "chunks": []
+            }
 
+        if not docs_are_relevant(question, filtered_docs):
+            return {
+                "text": "❌ Strict mode: No relevant information found in your documents.",
+                "confidence": "Strict mode",
+                "coverage": {"grounded": 0, "general": 0},
+                "sources": [],
+                "chunks": []
+        }    
+            
     context_text = "" if mode == "Diagram" else truncate_docs(filtered_docs)
 
     if not filtered_docs and not memory:
@@ -91,7 +101,21 @@ def generate_answer(question, mode, memory=None, strict=False):
     Answer:
     """
     
-    answer = call_llm(prompt)
+    if strict:
+        answer = call_llm(prompt)
+        grounded_sentences, _ = extract_grounded_spans(answer, filtered_docs, threshold=0.6)
+
+        if not grounded_sentences:
+            return {
+                "text": "❌ Strict mode: Answer could not be grounded in documents.",
+                "confidence": "Strict mode",
+                "coverage": {"grounded": 0, "general": 0},
+                "sources": [],
+                "chunks": []
+            }
+    else:
+        answer = call_llm(prompt)
+
 
     sources = [
         {"source": d.metadata.get("source"), "page": d.metadata.get("page")}
@@ -116,6 +140,7 @@ def generate_answer(question, mode, memory=None, strict=False):
             "overlaps": debug
         }
     }
+
 
 
 
