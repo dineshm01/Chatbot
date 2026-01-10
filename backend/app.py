@@ -104,18 +104,21 @@ def register():
     if not username or not email or not password:
         return jsonify({"error": "All fields required"}), 400
 
-    if users.find_one({"username": username}):
-        return jsonify({"error": "Username already exists"}), 400
+    if users.find_one({"email": email}):
+        return jsonify({"error": "User already exists"}), 400
 
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
 
-    user = users.insert_one({
+    user_doc = {
         "username": username,
         "email": email,
-        "password": hashed
-    })
+        "password": hashed,
+        "role": "user"
+    }
 
-    token = create_token(user.inserted_id)
+    result = users.insert_one(user_doc)
+
+    token = create_token(result.inserted_id)
     return jsonify({"token": token})
 
 @app.route("/api/login", methods=["POST"])
@@ -423,6 +426,7 @@ def export_history_pdf():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
