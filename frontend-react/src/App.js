@@ -382,6 +382,22 @@ function handleKeyDown(e) {
           Show Analytics
         </button>
 
+        <button
+          onClick={() => window.open(`${API}/api/export`, "_blank")}
+          style={{ 
+            marginLeft: "10px",
+            padding: "10px 20px",
+            fontSize: "15px",
+            borderRadius: "6px",
+            border: "1px solid #ddd",
+            background: "white",
+            cursor: "pointer" 
+          }}
+        >
+          Export PDF
+        </button>
+
+
         <input 
           type="file"
           onChange={uploadFile}
