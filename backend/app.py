@@ -13,6 +13,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from io import BytesIO
 import bcrypt
 from auth import create_token, verify_token
+from datetime import timedelta
 
 
 
@@ -30,6 +31,35 @@ mongo_client = MongoClient(MONGO_URI)
 db = mongo_client["chatbot"]
 queries = db["queries"]
 users = db["users"]
+rate_limits = db["rate_limits"]
+
+
+
+RATE_LIMIT = 20
+WINDOW_SECONDS = 60
+
+def check_rate_limit(user_id):
+    now = datetime.utcnow()
+    window_start = now - timedelta(seconds=WINDOW_SECONDS)
+
+    # Remove old entries
+    rate_limits.delete_many({
+        "user_id": user_id,
+        "timestamp": {"$lt": window_start}
+    })
+
+    count = rate_limits.count_documents({"user_id": user_id})
+
+    if count >= RATE_LIMIT:
+        return False
+
+    rate_limits.insert_one({
+        "user_id": user_id,
+        "timestamp": now
+    })
+
+    return True
+
 
 def require_auth(fn):
     def wrapper(*args, **kwargs):
@@ -106,6 +136,9 @@ def login():
 @app.route("/api/ask", methods=["POST"])
 @require_auth
 def ask():
+    if not check_rate_limit(request.user_id):
+        return jsonify({"error": "Rate limit exceeded. Max 20 questions per minute."}), 429
+
     data = request.json or {}
     q = data.get("question", "").strip()
     mode = data.get("mode", "Detailed")
@@ -390,6 +423,7 @@ def export_history_pdf():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
