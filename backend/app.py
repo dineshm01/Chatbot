@@ -7,6 +7,11 @@ from werkzeug.utils import secure_filename
 import os
 from ingest import ingest_document
 from bson import ObjectId
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+from io import BytesIO
+
 
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -234,10 +239,44 @@ def analytics():
         "top_sources": most_sources
     })
 
+@app.route("/api/export", methods=["GET"])
+def export_history_pdf():
+    items = list(queries.find().sort("created_at", 1))
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    styles = getSampleStyleSheet()
+    elements = []
+
+    for item in items:
+        elements.append(Paragraph(f"<b>Q:</b> {item['question']}", styles["Normal"]))
+        elements.append(Paragraph(f"<b>A:</b> {item['text']}", styles["Normal"]))
+
+        if item.get("sources"):
+            srcs = ", ".join(s["source"] for s in item["sources"])
+            elements.append(Paragraph(f"<b>Sources:</b> {srcs}", styles["Normal"]))
+
+        if item.get("feedback"):
+            elements.append(Paragraph(f"<b>Feedback:</b> {item['feedback']}", styles["Normal"]))
+
+        if item.get("bookmarked"):
+            elements.append(Paragraph("<b>⭐ Bookmarked</b>", styles["Normal"]))
+
+        elements.append(Spacer(1, 12))
+
+    doc.build(elements)
+    buffer.seek(0)
+
+    return buffer.getvalue(), 200, {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": "attachment; filename=chat_history.pdf"
+    }
+
 
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
