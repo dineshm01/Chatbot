@@ -177,9 +177,48 @@ def save_feedback():
 
     return jsonify({"message": "Feedback saved", "feedback": feedback}), 200
 
+@app.route("/api/analytics", methods=["GET"])
+def analytics():
+    total = queries.count_documents({})
+
+    helpful = queries.count_documents({"feedback": "up"})
+    wrong = queries.count_documents({"feedback": "down"})
+    bookmarked = queries.count_documents({"bookmarked": True})
+
+    most_questions = list(
+        queries.aggregate([
+            {"$group": {"_id": "$question", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+            {"$limit": 5}
+        ])
+    )
+
+    most_sources = list(
+        queries.aggregate([
+            {"$unwind": "$sources"},
+            {"$group": {"_id": "$sources.source", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+            {"$limit": 5}
+        ])
+    )
+
+    hallucination_rate = round((wrong / total) * 100, 2) if total else 0
+
+    return jsonify({
+        "total": total,
+        "helpful": helpful,
+        "wrong": wrong,
+        "bookmarked": bookmarked,
+        "hallucination_rate": hallucination_rate,
+        "top_questions": most_questions,
+        "top_sources": most_sources
+    })
+
+
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
