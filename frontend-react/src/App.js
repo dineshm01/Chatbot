@@ -534,12 +534,22 @@ function handleKeyDown(e) {
           </ul>
 
             <h4>Top Sources</h4>
-            <ul>
+            <ul style={{ paddingLeft: "18px" }}>
               {analytics.top_sources.map((s, i) => (
-                <li key={i}>{s._id} ({s.count})</li>
+                <li
+                  key={i}
+                  style={{
+                    wordBreak: "break-all",
+                    whiteSpace: "normal",
+                    fontSize: "13px",
+                    marginBottom: "6px"
+                  }}
+                  title={s._id}
+                >
+                  {s._id} ({s.count})
+                </li>
               ))}
             </ul>
-
             <button onClick={() => setShowAnalytics(false)}>Close</button>
           </div>
         )}
