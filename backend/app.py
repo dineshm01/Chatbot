@@ -62,6 +62,7 @@ def ask():
         "sources": result.get("sources", []),
         "chunks": result.get("chunks", []),
         "feedback": None,
+        "bookmarked": False,
         "created_at": datetime.utcnow()
     }
 
@@ -94,6 +95,8 @@ def get_history():
     for item in data:
         item["_id"] = str(item["_id"])
         item["feedback"] = item.get("feedback")
+        item["bookmarked"] = item.get("bookmarked", False)
+
 
 
         # normalize coverage format
@@ -177,6 +180,23 @@ def save_feedback():
 
     return jsonify({"message": "Feedback saved", "feedback": feedback}), 200
 
+@app.route("/api/bookmark", methods=["POST"])
+def toggle_bookmark():
+    data = request.json or {}
+    msg_id = data.get("id")
+    value = data.get("value")
+
+    if not msg_id or value not in [True, False]:
+        return jsonify({"error": "Invalid input"}), 400
+
+    queries.update_one(
+        {"_id": ObjectId(msg_id)},
+        {"$set": {"bookmarked": value}}
+    )
+
+    return jsonify({"message": "Bookmark updated", "bookmarked": value}), 200
+
+
 @app.route("/api/analytics", methods=["GET"])
 def analytics():
     total = queries.count_documents({})
@@ -218,6 +238,7 @@ def analytics():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
