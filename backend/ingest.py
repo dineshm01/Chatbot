@@ -1,6 +1,13 @@
 from utils.loaders import load_file
 from utils.embeddings import embed_texts, get_embeddings
 from langchain_community.vectorstores import FAISS
+from pymongo import MongoClient
+import os
+
+client = MongoClient(os.getenv("MONGO_URI"))
+db = client["chatbot"]
+raw_docs = db["raw_docs"]
+
 
 VECTOR_DIR = "vectorstore"
 
@@ -18,6 +25,19 @@ def ingest_document(filepath):
     if len(texts) != len(vectors):
         raise RuntimeError("Mismatch between texts and embeddings")
 
+    raw_docs.delete_many({})  # clear old
+
+    valid_docs = [d for d in docs if d.page_content and d.page_content.strip()]
+
+    for i, d in enumerate(valid_docs):
+        raw_docs.insert_one({
+            "index": i + 1,
+            "text": d.page_content,
+            "source": d.metadata.get("source"),
+            "page": d.metadata.get("page")
+        })
+
+
     embeddings = get_embeddings()  # <-- this was missing
 
     vectorstore = FAISS.from_embeddings(
@@ -27,3 +47,4 @@ def ingest_document(filepath):
     )
 
     vectorstore.save_local(VECTOR_DIR)
+
