@@ -3,6 +3,8 @@ import os
 from utils.llm import call_llm
 from rapidfuzz import fuzz
 import re
+from pymongo import MongoClient
+import os
 from rag_utils import (
     load_vectorstore,
     get_retriever,
@@ -10,6 +12,19 @@ from rag_utils import (
     compute_confidence,
     compute_coverage
 )
+
+client = MongoClient(os.getenv("MONGO_URI"))
+db = client["chatbot"]
+raw_docs = db["raw_docs"]
+
+def exact_lookup(question):
+    import re
+    m = re.search(r"(\d+)(st|nd|rd|th)?\s+question", question.lower())
+    if m:
+        idx = int(m.group(1))
+        return raw_docs.find_one({"index": idx})
+
+    return None
 
 def docs_are_relevant(question, docs, threshold=60):
     if not docs:
@@ -44,6 +59,16 @@ def extract_grounded_spans(answer, docs, threshold=0.2):
     return grounded, debug
     
 def generate_answer(question, mode, memory=None, strict=False):
+    exact = exact_lookup(question)
+    if exact:
+        return {
+            "text": exact["text"],
+            "confidence": "Exact match from document",
+            "coverage": {"grounded": 100, "general": 0},
+            "sources": [{"source": exact.get("source"), "page": exact.get("page")}],
+            "chunks": [exact["text"]]
+        }
+
     memory = memory or []
 
     retriever = get_retriever()
@@ -140,31 +165,4 @@ def generate_answer(question, mode, memory=None, strict=False):
             "overlaps": debug
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    
