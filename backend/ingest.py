@@ -3,6 +3,7 @@ from utils.embeddings import embed_texts, get_embeddings
 from langchain_community.vectorstores import FAISS
 from pymongo import MongoClient
 import os
+import re
 
 client = MongoClient(os.getenv("MONGO_URI"))
 db = client["chatbot"]
@@ -10,6 +11,12 @@ raw_docs = db["raw_docs"]
 
 
 VECTOR_DIR = "vectorstore"
+
+
+def extract_questions(text):
+    pattern = re.compile(r"(?:^|\n)\s*(\d+)[\).:-]\s*(.+)", re.MULTILINE)
+    return [{"index": int(m.group(1)), "text": m.group(2).strip()} for m in pattern.finditer(text)]
+
 
 def ingest_document(filepath):
     docs = load_file(filepath)
@@ -25,17 +32,18 @@ def ingest_document(filepath):
     if len(texts) != len(vectors):
         raise RuntimeError("Mismatch between texts and embeddings")
 
-    raw_docs.delete_many({})  # clear old
+    raw_docs.delete_many({})
 
-    valid_docs = [d for d in docs if d.page_content and d.page_content.strip()]
+    for d in docs:
+        questions = extract_questions(d.page_content)
+        for q in questions:
+            raw_docs.insert_one({
+                "index": q["index"],
+                "text": q["text"],
+                "source": d.metadata.get("source"),
+                "page": d.metadata.get("page")
+            })
 
-    for i, d in enumerate(valid_docs):
-        raw_docs.insert_one({
-            "index": i + 1,
-            "text": d.page_content,
-            "source": d.metadata.get("source"),
-            "page": d.metadata.get("page")
-        })
 
 
     embeddings = get_embeddings()  # <-- this was missing
@@ -47,4 +55,5 @@ def ingest_document(filepath):
     )
 
     vectorstore.save_local(VECTOR_DIR)
+
 
