@@ -9,40 +9,32 @@ client = MongoClient(os.getenv("MONGO_URI"))
 db = client["chatbot"]
 raw_docs = db["raw_docs"]
 
-
 VECTOR_DIR = "vectorstore"
 
-
 def extract_questions(text):
-    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    parts = re.split(r"\?\s*", text)
     questions = []
-
-    for line in lines:
-        if re.match(r"^(\d+[\).\:]|\s*Q\d+[\:\)])\s*.+\?$", line):
-            questions.append(line)
-        elif line.endswith("?"):
-            questions.append(line)
-
+    for p in parts:
+        p = p.strip()
+        if len(p) > 10:
+            questions.append(p + "?")
     return questions
 
-
 def ingest_document(filepath):
+    print("Ingesting:", filepath)
     docs = load_file(filepath)
 
     texts = [d.page_content for d in docs if d.page_content and d.page_content.strip()]
     metadatas = [d.metadata for d in docs if d.page_content and d.page_content.strip()]
 
     if not texts:
-        raise RuntimeError("No valid text extracted from document")
+        raise RuntimeError("No valid text extracted")
 
     vectors = embed_texts(texts)
 
-    if len(texts) != len(vectors):
-        raise RuntimeError("Mismatch between texts and embeddings")
-
     raw_docs.delete_many({})
-
     index = 1
+
     for d in docs:
         questions = extract_questions(d.page_content)
         for q in questions:
@@ -54,18 +46,11 @@ def ingest_document(filepath):
             })
             index += 1
 
-    embeddings = get_embeddings()  # <-- this was missing
+    print("Inserted questions:", index - 1)
 
     vectorstore = FAISS.from_embeddings(
         text_embeddings=list(zip(texts, vectors)),
-        embedding=embeddings,        # <-- pass embedding wrapper
+        embedding=get_embeddings(),
         metadatas=metadatas
     )
-
     vectorstore.save_local(VECTOR_DIR)
-
-
-
-
-
-
