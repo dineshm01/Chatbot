@@ -17,30 +17,24 @@ client = MongoClient(os.getenv("MONGO_URI"))
 db = client["chatbot"]
 raw_docs = db["raw_docs"]
 
-def exact_lookup(question):
-    q = question.lower().strip()
+def find_nth_question(n: int):
+    docs = list(raw_docs.find({}).sort("index", 1))
+    all_questions = []
 
-    m = re.search(
-        r"(?:what is|show|get)?\s*(\d+)(st|nd|rd|th)?\s+(question|item|entry)",
-        q
-    )
+    for d in docs:
+        lines = [l.strip() for l in d["text"].split("\n") if l.strip()]
+        for l in lines:
+            if l.endswith("?"):
+                all_questions.append({
+                    "text": l,
+                    "source": d.get("source"),
+                    "page": d.get("page")
+                })
 
-    if not m:
+    if n <= 0 or n > len(all_questions):
         return None
 
-    idx = int(m.group(1))
-    item = raw_docs.find_one({"index": idx})
-
-    if not item:
-        return {
-            "text": f"❌ No question found at position {idx} in the document.",
-            "confidence": "Strict mode",
-            "coverage": {"grounded": 0, "general": 0},
-            "sources": [],
-            "chunks": []
-        }
-
-    return item
+    return all_questions[n - 1]
 
 def docs_are_relevant(question, docs, threshold=60):
     if not docs:
@@ -75,14 +69,25 @@ def extract_grounded_spans(answer, docs, threshold=0.2):
     return grounded, debug
     
 def generate_answer(question, mode, memory=None, strict=False):
-    exact = exact_lookup(question)
-    if exact:
+    m = re.search(r"(\d+)(st|nd|rd|th)?\s+question", question.lower())
+    if m:
+        idx = int(m.group(1))
+        q = find_nth_question(idx)
+        if not q:
+            return {
+                "text": f"❌ No question found at position {idx} in the document.",
+                "confidence": "Strict mode",
+                "coverage": {"grounded": 0, "general": 0},
+                "sources": [],
+                "chunks": []
+            }
+
         return {
-            "text": exact["text"],
+            "text": q["text"],
             "confidence": "Exact match from document",
             "coverage": {"grounded": 100, "general": 0},
-            "sources": [{"source": exact.get("source"), "page": exact.get("page")}],
-            "chunks": [exact["text"]]
+            "sources": [{"source": q.get("source"), "page": q.get("page")}],
+            "chunks": [q["text"]]
         }
 
     memory = memory or []
@@ -182,5 +187,6 @@ def generate_answer(question, mode, memory=None, strict=False):
         }
     }
     
+
 
 
