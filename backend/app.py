@@ -479,9 +479,14 @@ def promote():
 
     return jsonify({"message": f"{username} promoted to admin"})
 
+@app.route("/api/debug/raw_docs")
+def debug_raw_docs():
+    return jsonify(list(raw_docs.find({}, {"_id": 0}).sort("index", 1)))
+
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
