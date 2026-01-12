@@ -14,8 +14,17 @@ VECTOR_DIR = "vectorstore"
 
 
 def extract_questions(text):
-    pattern = re.compile(r"(?:^|\n)\s*(\d+)[\).:-]\s*(.+)", re.MULTILINE)
-    return [{"index": int(m.group(1)), "text": m.group(2).strip()} for m in pattern.finditer(text)]
+    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    questions = []
+
+    for line in lines:
+        if line.endswith("?"):
+            questions.append(line)
+
+    return [
+        {"index": i + 1, "text": q}
+        for i, q in enumerate(questions)
+    ]
 
 
 def ingest_document(filepath):
@@ -55,5 +64,6 @@ def ingest_document(filepath):
     )
 
     vectorstore.save_local(VECTOR_DIR)
+
 
 
