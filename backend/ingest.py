@@ -12,22 +12,15 @@ raw_docs = db["raw_docs"]
 VECTOR_DIR = "vectorstore"
 
 def extract_questions(text):
-    lines = [l.strip() for l in text.splitlines() if l.strip()]
     questions = []
-    buffer = ""
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
 
-    for line in lines:
-        # New question starts if line looks like numbered or is a question line
-        if re.match(r"^(\d+[\).\:]|Q\d+[\:\)]|\(?Only for|\(?If|[A-Z].+\?)", line):
-            if buffer:
-                questions.append(buffer.strip())
-            buffer = line
-        else:
-            if buffer:
-                buffer += " " + line
-
-    if buffer:
-        questions.append(buffer.strip())
+        # Only accept real standalone questions
+        if line.endswith("?") and len(line) > 15:
+            questions.append(line)
 
     return questions
 
@@ -65,4 +58,5 @@ def ingest_document(filepath):
         metadatas=metadatas
     )
     vectorstore.save_local(VECTOR_DIR)
+
 
