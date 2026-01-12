@@ -21,10 +21,7 @@ def extract_questions(text):
         if line.endswith("?"):
             questions.append(line)
 
-    return [
-        {"index": i + 1, "text": q}
-        for i, q in enumerate(questions)
-    ]
+    return questions
 
 
 def ingest_document(filepath):
@@ -43,17 +40,17 @@ def ingest_document(filepath):
 
     raw_docs.delete_many({})
 
+    index = 1
     for d in docs:
         questions = extract_questions(d.page_content)
         for q in questions:
             raw_docs.insert_one({
-                "index": q["index"],
-                "text": q["text"],
+                "index": index,
+                "text": q,
                 "source": d.metadata.get("source"),
                 "page": d.metadata.get("page")
             })
-
-
+            index += 1
 
     embeddings = get_embeddings()  # <-- this was missing
 
@@ -64,6 +61,7 @@ def ingest_document(filepath):
     )
 
     vectorstore.save_local(VECTOR_DIR)
+
 
 
 
