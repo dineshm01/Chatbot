@@ -479,13 +479,23 @@ def promote():
 
     return jsonify({"message": f"{username} promoted to admin"})
 
-@app.route("/api/debug/raw_docs")
+@app.route("/api/debug/raw_docs", methods=["GET"])
 def debug_raw_docs():
-    return jsonify(list(raw_docs.find({}, {"_id": 0}).sort("index", 1)))
+    try:
+        docs = list(raw_docs.find({}, {"_id": 0}).sort([("index", 1)]))
+        return jsonify({
+            "count": len(docs),
+            "docs": docs
+        })
+    except Exception as e:
+        return jsonify({
+            "error": str(e)
+        }), 500
 
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
