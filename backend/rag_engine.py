@@ -17,24 +17,6 @@ client = MongoClient(os.getenv("MONGO_URI"))
 db = client["chatbot"]
 raw_docs = db["raw_docs"]
 
-def find_nth_question(n: int):
-    docs = list(raw_docs.find({}).sort("index", 1))
-    all_questions = []
-
-    for d in docs:
-        lines = [l.strip() for l in d["text"].split("\n") if l.strip()]
-        for l in lines:
-            if l.endswith("?"):
-                all_questions.append({
-                    "text": l,
-                    "source": d.get("source"),
-                    "page": d.get("page")
-                })
-
-    if n <= 0 or n > len(all_questions):
-        return None
-
-    return all_questions[n - 1]
 
 def docs_are_relevant(question, docs, threshold=60):
     if not docs:
@@ -72,8 +54,8 @@ def generate_answer(question, mode, memory=None, strict=False):
     m = re.search(r"(\d+)(st|nd|rd|th)?\s+question", question.lower())
     if m:
         idx = int(m.group(1))
-        q = find_nth_question(idx)
-        if not q:
+        item = raw_docs.find_one({"index": idx})
+        if not item:
             return {
                 "text": f"❌ No question found at position {idx} in the document.",
                 "confidence": "Strict mode",
@@ -83,11 +65,11 @@ def generate_answer(question, mode, memory=None, strict=False):
             }
 
         return {
-            "text": q["text"],
+            "text": item["text"],
             "confidence": "Exact match from document",
             "coverage": {"grounded": 100, "general": 0},
-            "sources": [{"source": q.get("source"), "page": q.get("page")}],
-            "chunks": [q["text"]]
+            "sources": [{"source": item.get("source"), "page": item.get("page")}],
+            "chunks": [item["text"]]
         }
 
     memory = memory or []
@@ -187,6 +169,7 @@ def generate_answer(question, mode, memory=None, strict=False):
         }
     }
     
+
 
 
 
