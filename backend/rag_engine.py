@@ -18,19 +18,29 @@ db = client["chatbot"]
 raw_docs = db["raw_docs"]
 
 def exact_lookup(question):
-    q = question.lower()
+    q = question.lower().strip()
 
-    # match patterns like:
-    # "what is 35th question"
-    # "show 10th item"
-    # "get 5th entry"
-    m = re.search(r"(?:what is|show|get)?\s*(\d+)(st|nd|rd|th)?\s+(question|item|entry)", q)
+    m = re.search(
+        r"(?:what is|show|get)?\s*(\d+)(st|nd|rd|th)?\s+(question|item|entry)",
+        q
+    )
 
     if not m:
         return None
 
     idx = int(m.group(1))
-    return raw_docs.find_one({"index": idx})
+    item = raw_docs.find_one({"index": idx})
+
+    if not item:
+        return {
+            "text": f"❌ No question found at position {idx} in the document.",
+            "confidence": "Strict mode",
+            "coverage": {"grounded": 0, "general": 0},
+            "sources": [],
+            "chunks": []
+        }
+
+    return item
 
 def docs_are_relevant(question, docs, threshold=60):
     if not docs:
@@ -172,4 +182,5 @@ def generate_answer(question, mode, memory=None, strict=False):
         }
     }
     
+
 
