@@ -14,12 +14,21 @@ VECTOR_DIR = "vectorstore"
 
 
 def extract_questions(text):
-    lines = [l.strip() for l in text.splitlines() if l.strip()]
     questions = []
+    lines = [l.strip() for l in text.splitlines() if l.strip()]
 
+    buffer = ""
     for line in lines:
-        if line.endswith("?"):
-            questions.append(line)
+        # Detect numbered question start like "35.", "35)", "35 -"
+        if re.match(r"^\d+[\.\)\-]\s*", line):
+            if buffer:
+                questions.append(buffer.strip())
+            buffer = line
+        else:
+            buffer += " " + line
+
+    if buffer:
+        questions.append(buffer.strip())
 
     return questions
 
@@ -61,6 +70,7 @@ def ingest_document(filepath):
     )
 
     vectorstore.save_local(VECTOR_DIR)
+
 
 
 
