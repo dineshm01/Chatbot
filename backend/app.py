@@ -89,6 +89,20 @@ def require_auth(fn):
     return wrapper
 
 
+def require_admin(fn):
+    def wrapper(*args, **kwargs):
+        uid = request.user_id
+        user = users.find_one({"_id": ObjectId(uid)})
+
+        if not user or user.get("role") != "admin":
+            return jsonify({"error": "Admin access required"}), 403
+
+        return fn(*args, **kwargs)
+
+    wrapper.__name__ = fn.__name__
+    return wrapper
+
+
 
 @app.route("/")
 def home():
@@ -423,9 +437,52 @@ def export_history_pdf():
         "Content-Type": "application/pdf",
         "Content-Disposition": "attachment; filename=chat_history.pdf"
     }
+
+@app.route("/api/admin/analytics", methods=["GET"])
+@require_auth
+@require_admin
+def admin_analytics():
+    total_users = users.count_documents({})
+    total_queries = queries.count_documents({})
+
+    top_users = list(
+        queries.aggregate([
+            {"$group": {"_id": "$user_id", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+            {"$limit": 10}
+        ])
+    )
+
+    return jsonify({
+        "total_users": total_users,
+        "total_queries": total_queries,
+        "top_users": top_users
+    })
+
+@app.route("/api/admin/promote", methods=["POST"])
+@require_auth
+@require_admin
+def promote():
+    data = request.json
+    username = data.get("username")
+
+    if not username:
+        return jsonify({"error": "Username required"}), 400
+
+    result = users.update_one(
+        {"username": username},
+        {"$set": {"role": "admin"}}
+    )
+
+    if result.matched_count == 0:
+        return jsonify({"error": "User not found"}), 404
+
+    return jsonify({"message": f"{username} promoted to admin"})
+
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
