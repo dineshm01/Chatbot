@@ -3,7 +3,7 @@ from langchain_community.vectorstores import FAISS
 from utils.embeddings import get_embeddings
 from rapidfuzz import fuzz
 
-VECTOR_DIR = "/app/vectorstore"
+VECTOR_DIR = "vectorstore"
 
 def load_vectorstore():
     if not os.path.exists(os.path.join(VECTOR_DIR, "index.faiss")):
@@ -74,5 +74,6 @@ def compute_coverage(docs, answer=None, threshold=70):
         "grounded": grounded_pct,
         "general": general_pct
     }
+
 
 
