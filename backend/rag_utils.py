@@ -3,10 +3,15 @@ from langchain_community.vectorstores import FAISS
 from utils.embeddings import get_embeddings
 from rapidfuzz import fuzz
 
-VECTOR_DIR = "vectorstore"
+# FIX: Use an absolute path so the app finds the mounted Volume
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+VECTOR_DIR = os.path.join(os.path.dirname(BASE_DIR), "vectorstore")
 
 def load_vectorstore():
-    if not os.path.exists(os.path.join(VECTOR_DIR, "index.faiss")):
+    # Check if the index exists on the persistent disk
+    index_file = os.path.join(VECTOR_DIR, "index.faiss")
+    if not os.path.exists(index_file):
+        print(f"DEBUG: No index found at {index_file}")
         return None
 
     return FAISS.load_local(
@@ -14,6 +19,7 @@ def load_vectorstore():
         get_embeddings(),
         allow_dangerous_deserialization=True
     )
+
 
 def get_retriever():
     vectorstore = load_vectorstore()
@@ -74,6 +80,7 @@ def compute_coverage(docs, answer=None, threshold=70):
         "grounded": grounded_pct,
         "general": general_pct
     }
+
 
 
 
