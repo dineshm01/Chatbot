@@ -2,6 +2,7 @@ import os
 from huggingface_hub import InferenceClient
 from langchain_core.embeddings import Embeddings
 
+# Use one consistent name that matches your Railway Variable
 HF_API_KEY = os.getenv("HF_API_KEY")
 
 MODEL = "sentence-transformers/paraphrase-MiniLM-L3-v2"
@@ -11,24 +12,22 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
     if not texts:
         return []
 
-    embeddings = client.feature_extraction(
-        texts,
-        model=MODEL
-    )
-
-    if isinstance(embeddings[0], float):
-        embeddings = [embeddings]
-
-    return embeddings
-
+    try:
+        embeddings = client.feature_extraction(texts, model=MODEL)
+        if isinstance(embeddings[0], float):
+            embeddings = [embeddings]
+        return embeddings
+    except Exception as e:
+        print(f"HuggingFace Embedding Error: {e}")
+        raise e
 
 class HFEmbeddings(Embeddings):
     def embed_documents(self, texts):
         return embed_texts(texts)
 
     def embed_query(self, text):
-        return embed_texts([text])[0]
-
+        res = embed_texts([text])
+        return res[0] if res else []
 
 def get_embeddings():
     return HFEmbeddings()
