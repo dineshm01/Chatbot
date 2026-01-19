@@ -12,11 +12,13 @@ raw_docs = db["raw_docs"]
 VECTOR_DIR = "vectorstore"
 
 def extract_questions(text):
+    lines = [l.strip() for l in text.splitlines() if l.strip()]
     questions = []
-    for line in text.splitlines():
-        line = line.strip()
-        if line.endswith("?"):      # <-- KEY FIX FOR YOUR FILE
+
+    for line in lines:
+        if line.endswith("?"):
             questions.append(line)
+
     return questions
 
 def ingest_document(filepath):
@@ -53,6 +55,7 @@ def ingest_document(filepath):
         metadatas=metadatas
     )
     vectorstore.save_local(VECTOR_DIR)
+
 
 
 
