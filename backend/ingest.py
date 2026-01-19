@@ -1,5 +1,5 @@
 from utils.loaders import load_file
-from utils.embeddings import embed_texts, get_embeddings
+from utils.embeddings import get_embeddings
 from langchain_community.vectorstores import FAISS
 from pymongo import MongoClient
 import os
@@ -17,19 +17,18 @@ def extract_questions(text):
 
 def ingest_document(filepath):
     print("Ingesting:", filepath)
+
     docs = load_file(filepath)
 
-    texts = [d.page_content for d in docs if d.page_content and d.page_content.strip()]
-    metadatas = [d.metadata for d in docs if d.page_content and d.page_content.strip()]
-
-    if not texts:
+    # Remove empty docs
+    docs = [d for d in docs if d.page_content and d.page_content.strip()]
+    if not docs:
         raise RuntimeError("No valid text extracted")
 
-    vectors = embed_texts(texts)
-
+    # Reset raw question store
     raw_docs.delete_many({})
-    index = 1
 
+    index = 1
     for d in docs:
         questions = extract_questions(d.page_content)
         for q in questions:
@@ -43,16 +42,7 @@ def ingest_document(filepath):
 
     print("Inserted questions:", index - 1)
 
-    vectorstore = FAISS.from_embeddings(
-        text_embeddings=list(zip(texts, vectors)),
-        embedding=get_embeddings(),
-        metadatas=metadatas
-    )
+    # ✅ CORRECT FAISS CREATION (KEY FIX)
+    embeddings = get_embeddings()
+    vectorstore = FAISS.from_documents(docs, embeddings)
     vectorstore.save_local(VECTOR_DIR)
-
-
-
-
-
-
-
