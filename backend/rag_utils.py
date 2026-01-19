@@ -19,7 +19,12 @@ def get_retriever():
     vectorstore = load_vectorstore()
     if not vectorstore:
         return None
-    return vectorstore.as_retriever(search_kwargs={"k": 6})
+    return vectorstore.as_retriever(
+    search_kwargs={
+        "k": 12,
+        "score_threshold": 0.2
+    }
+)
 
 def truncate_docs(docs, max_chars=1500):
     text = ""
@@ -69,4 +74,5 @@ def compute_coverage(docs, answer=None, threshold=70):
         "grounded": grounded_pct,
         "general": general_pct
     }
+
 
