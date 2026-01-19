@@ -17,7 +17,8 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
     try:
         embeddings = client.feature_extraction(texts, model=MODEL)
         
-        # Convert NumPy array to list to avoid ambiguous truth errors
+        # CRITICAL FIX: Convert NumPy array to list immediately 
+        # to avoid the "ambiguous truth value" error
         if hasattr(embeddings, "tolist"):
             embeddings = embeddings.tolist()
             
@@ -38,6 +39,7 @@ class HFEmbeddings(Embeddings):
 
 def get_embeddings():
     return HFEmbeddings()
+
 
 
 
