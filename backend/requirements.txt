@@ -1,3 +1,4 @@
+numpy
 flask==3.1.1
 flask-cors==6.0.1
 pymongo==4.15.4
@@ -24,5 +25,6 @@ rapidfuzz
 reportlab
 pyjwt==2.8.0
 bcrypt==4.1.2
+
 
 
