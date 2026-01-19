@@ -18,7 +18,7 @@ db = client["chatbot"]
 raw_docs = db["raw_docs"]
 
 
-def docs_are_relevant(question, docs, threshold=45):
+def docs_are_relevant(question, docs, threshold=30):
     if not docs:
         return False
 
@@ -176,6 +176,7 @@ def generate_answer(question, mode, memory=None, strict=False):
         }
     }
     
+
 
 
 
