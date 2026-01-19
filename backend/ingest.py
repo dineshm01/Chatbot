@@ -14,10 +14,19 @@ VECTOR_DIR = "vectorstore"
 def extract_questions(text):
     lines = [l.strip() for l in text.splitlines() if l.strip()]
     questions = []
+    buffer = ""
 
     for line in lines:
-        if line.endswith("?"):
-            questions.append(line)
+        if re.match(r"^(\d+[\).\:]|Q\d+[\:\)]|\(?Only for|\(?If|[A-Z].+\?)", line):
+            if buffer:
+                questions.append(buffer.strip())
+            buffer = line
+        else:
+            if buffer:
+                buffer += " " + line
+
+    if buffer:
+        questions.append(buffer.strip())
 
     return questions
 
@@ -55,6 +64,7 @@ def ingest_document(filepath):
         metadatas=metadatas
     )
     vectorstore.save_local(VECTOR_DIR)
+
 
 
 
