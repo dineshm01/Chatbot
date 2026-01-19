@@ -54,7 +54,7 @@ def generate_answer(question, mode, memory=None, strict=False):
     m = re.search(r"(\d+)(st|nd|rd|th)?\s+question", question.lower())
     if m:
         idx = int(m.group(1))
-        item = raw_docs.find_one({"index": idx})
+        item = raw_docs.find_one({}, sort=[("index", 1)]).skip(idx-1)
         if not item:
             return {
                 "text": f"❌ No question found at position {idx} in the document.",
@@ -169,6 +169,7 @@ def generate_answer(question, mode, memory=None, strict=False):
         }
     }
     
+
 
 
 
