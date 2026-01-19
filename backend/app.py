@@ -65,12 +65,12 @@ def require_auth(fn):
     def wrapper(*args, **kwargs):
         token = None
 
-        # 1️⃣ Try Authorization header
+        # Checks Authorization: Bearer <token>
         auth = request.headers.get("Authorization", "")
         if auth.startswith("Bearer "):
             token = auth.split(" ")[1]
 
-        # 2️⃣ Try query param
+        # Fallback for query parameters (used in PDF export)
         if not token:
             token = request.args.get("token")
 
@@ -78,16 +78,21 @@ def require_auth(fn):
             return jsonify({"error": "Missing token"}), 401
 
         try:
+            # This calls verify_token from auth.py using your JWT_SECRET
             payload = verify_token(token)
             request.user_id = payload["user_id"]
-        except:
+        except jwt.ExpiredSignatureError:
+            return jsonify({"error": "Token has expired"}), 401
+        except jwt.InvalidTokenError:
             return jsonify({"error": "Invalid token"}), 401
+        except Exception:
+            return jsonify({"error": "Authentication failed"}), 401
 
         return fn(*args, **kwargs)
 
     wrapper.__name__ = fn.__name__
     return wrapper
-
+    
 
 def require_admin(fn):
     def wrapper(*args, **kwargs):
@@ -495,6 +500,7 @@ def debug_raw_docs():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
