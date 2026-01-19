@@ -51,10 +51,17 @@ def extract_grounded_spans(answer, docs, threshold=0.2):
     return grounded, debug
     
 def generate_answer(question, mode, memory=None, strict=False):
+    # NEW CORRECTED CODE
     m = re.search(r"(\d+)(st|nd|rd|th)?\s+question", question.lower())
     if m:
         idx = int(m.group(1))
-        item = raw_docs.find_one({}, sort=[("index", 1)]).skip(idx-1)
+        # find() returns a cursor, which supports .skip() and .limit()
+        cursor = raw_docs.find({}, sort=[("index", 1)]).skip(idx - 1).limit(1)
+    
+        # Extract the document from the cursor
+        items = list(cursor)
+        item = items[0] if items else None
+    
         if not item:
             return {
                 "text": f"❌ No question found at position {idx} in the document.",
@@ -169,6 +176,7 @@ def generate_answer(question, mode, memory=None, strict=False):
         }
     }
     
+
 
 
 
