@@ -11,16 +11,18 @@ client = InferenceClient(token=HF_API_KEY)
 def embed_texts(texts: list[str]) -> list[list[float]]:
     if not texts:
         return []
-
     try:
         embeddings = client.feature_extraction(texts, model=MODEL)
-        if isinstance(embeddings[0], float):
-            embeddings = [embeddings]
+        
+        # NumPy/Array Fix: Use list comparison instead of direct truth check
+        if isinstance(embeddings, list) and len(embeddings) > 0:
+            if isinstance(embeddings[0], float):
+                embeddings = [embeddings]
         return embeddings
     except Exception as e:
         print(f"HuggingFace Embedding Error: {e}")
         raise e
-
+        
 class HFEmbeddings(Embeddings):
     def embed_documents(self, texts):
         return embed_texts(texts)
@@ -31,3 +33,4 @@ class HFEmbeddings(Embeddings):
 
 def get_embeddings():
     return HFEmbeddings()
+
