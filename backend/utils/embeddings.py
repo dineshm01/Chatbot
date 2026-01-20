@@ -17,18 +17,20 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
     try:
         embeddings = client.feature_extraction(texts, model=MODEL)
         
-        # CRITICAL FIX: Convert NumPy array to list immediately 
-        # to avoid the "ambiguous truth value" error
+        # FIX: Immediately convert to a standard list to stop the crash
         if hasattr(embeddings, "tolist"):
             embeddings = embeddings.tolist()
             
+        # Ensure the result is a list of lists
         if len(embeddings) > 0 and not isinstance(embeddings[0], list):
             embeddings = [embeddings]
+            
         return embeddings
     except Exception as e:
         print(f"HuggingFace Embedding Error: {e}")
         raise e
-        
+
+
 class HFEmbeddings(Embeddings):
     def embed_documents(self, texts):
         return embed_texts(texts)
@@ -39,6 +41,7 @@ class HFEmbeddings(Embeddings):
 
 def get_embeddings():
     return HFEmbeddings()
+
 
 
 
