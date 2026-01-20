@@ -16,19 +16,22 @@ def extract_questions(text):
     questions = re.findall(r"\d+\..*?\?", text, flags=re.DOTALL)
     return [q.strip() for q in questions]
 
-def ingest_document(filepath):
+# Change the function signature to accept user_id
+def ingest_document(filepath, user_id): 
     docs = load_file(filepath)
     
-    # NEW: Split documents into smaller pieces so the embedding model can read them
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
     chunks = text_splitter.split_documents(docs)
 
     if not chunks:
         raise RuntimeError("No valid text extracted")
 
-    # Clear old data
-    raw_docs.delete_many({})
+    # FIX: Only delete documents belonging to THIS user
+    raw_docs.delete_many({"user_id": user_id}) 
 
+    # When inserting chunks later (if you add that logic), 
+    # ensure you include "user_id": user_id in the document.
+    
     # Store chunks in FAISS
     embeddings = get_embeddings()
     vectorstore = FAISS.from_documents(chunks, embeddings)
