@@ -3,8 +3,7 @@ from flask import Flask, request, jsonify
 from rag_engine import generate_answer
 from pymongo import MongoClient
 from flask_cors import CORS
-from datetime import UTC
-from werkzeug.utils import secure_filename
+from datetime import datetime, timezone, timedelta
 import os
 from ingest import ingest_document
 from bson import ObjectId
@@ -14,7 +13,6 @@ from reportlab.lib.styles import getSampleStyleSheet
 from io import BytesIO
 import bcrypt
 from auth import create_token, verify_token
-from datetime import timedelta
 
 
 
@@ -40,7 +38,7 @@ RATE_LIMIT = 20
 WINDOW_SECONDS = 60
 
 def check_rate_limit(user_id):
-    now = datetime.now(datetime.UTC)
+    now = datetime.now(timezone.utc)
     window_start = now - timedelta(seconds=WINDOW_SECONDS)
 
     # Remove old entries
@@ -503,6 +501,7 @@ def debug_raw_docs():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
