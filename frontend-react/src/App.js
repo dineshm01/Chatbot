@@ -402,24 +402,27 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
         >
           Clear
         </button>
-        <div style={{ display: "inline-block", marginLeft: "10px" }}>
-          <label style={{
-            padding: "8px 12px",
-            background: uploading ? "#9ca3af" : "#f3f4f6",
-            border: "1px solid #ddd",
+            
+        <label style={{
+            padding: "10px 20px",
+            fontSize: "15px",
             borderRadius: "6px",
+            border: "1px solid #ddd",
+            background: uploading ? "#f3f4f6" : "white",
+            color: uploading ? "#9ca3af" : "#2563eb",
             cursor: uploading ? "not-allowed" : "pointer",
-            fontSize: "14px"
+            fontWeight: "bold",
+            display: "inline-block"
           }}>
             {uploading ? "⌛ Processing..." : "📁 Upload Document"}
-            <input 
-              type="file" 
-              onChange={uploadFile} 
-              disabled={uploading} 
-              style={{ display: "none" }} // Hide the ugly default input
-            />
-          </label>
-        </div>
+            <input
+              type="file"
+              onChange={uploadFile}
+              disabled={uploading}
+              style={{ display: "none" }} 
+          />
+        </label>
+      
         <button 
           onClick={loadHistoryPanel}
           style={{
@@ -482,15 +485,6 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
         >
           Logout
         </button>
-
-        <input 
-          type="file"
-          onChange={uploadFile}
-          disabled={uploading}
-          style={{marginLeft: "10px"}}
-        />
-
-        {uploading && <span style={{ marginLeft: "10px" }}>Uploading...</span>}
 
         <div style={{ marginTop: "24px" }}>
           {messages.map((m, i) => (
