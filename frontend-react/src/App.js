@@ -42,77 +42,69 @@ function convertMarkdownBold(text) {
   return text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 }
 
-function getDynamicKeywords(chunks) {
-  if (!chunks || chunks.length === 0) return [];
-  
-  // Combine all text and find words with 5+ characters
-  const allText = chunks.join(" ").toLowerCase();
-  const words = allText.match(/\b[a-z]{5,}\b/g) || [];
-  
-  // Ignore common filler words
-  const stopWords = new Set(["about", "these", "would", "there", "their", "which", "using", "through", "after", "before"]);
-  
-  const freqMap = {};
-  words.forEach(word => {
-    if (!stopWords.has(word)) {
-      freqMap[word] = (freqMap[word] || 0) + 1;
-    }
-  });
-
-  // Return the top 15 most frequent unique words from this specific file
-  return Object.entries(freqMap)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 15)
-    .map(entry => entry[0]);
+// 1. Helper to calculate textual similarity between two strings
+function getSimilarity(s1, s2) {
+  let longer = s1.length < s2.length ? s2 : s1;
+  let shorter = s1.length < s2.length ? s1 : s2;
+  if (longer.length === 0) return 1.0;
+  return (longer.length - editDistance(longer, shorter)) / parseFloat(longer.length);
 }
-  
+
+function editDistance(s1, s2) {
+  s1 = s1.toLowerCase(); s2 = s2.toLowerCase();
+  let costs = new Array();
+  for (let i = 0; i <= s1.length; i++) {
+    let lastValue = i;
+    for (let j = 0; j <= s2.length; j++) {
+      if (i == 0) costs[j] = j;
+      else if (j > 0) {
+        let newValue = costs[j - 1];
+        if (s1.charAt(i - 1) != s2.charAt(j - 1)) newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+        costs[j - 1] = lastValue; lastValue = newValue;
+      }
+    }
+    if (i > 0) costs[s2.length] = lastValue;
+  }
+  return costs[s2.length];
+}
+
+// 2. Highlighting logic that works for every document
 function highlightSources(answer, chunks) {
   let safe = answer;
   safe = convertMarkdownBold(safe);
-
-  // Security and line breaks
-  safe = safe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-             .replace(/&lt;(\/?(mark|strong))&gt;/g, "<$1>");
+  safe = safe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/&lt;(\/?(mark|strong))&gt;/g, "<$1>");
 
   if (!chunks || chunks.length === 0) return safe.replace(/\n/g, "<br/>");
 
-  // DISCOVERY: Find keywords for THIS specific document
-  const documentKeywords = getDynamicKeywords(chunks);
+  // Split answer into sentences
+  const answerSentences = safe.split(/[.!?]\s+/);
+  let finalAnswer = safe;
 
-  // Split document into individual sentences
-  let sourceSentences = [];
   chunks.forEach(chunk => {
-    if (chunk) {
-      const split = chunk.split(/[.!?]\s+/);
-      sourceSentences.push(...split);
-    }
-  });
-
-  // Highlight only if a sentence is unique and contains a discovered keyword
-  const uniqueSources = [...new Set(sourceSentences)]
-    .filter(s => s.trim().length > 65) // High precision: ignore fragments
-    .sort((a, b) => b.length - a.length);
-
-  uniqueSources.forEach(sourceText => {
-    const cleanSource = sourceText.replace(/[*_`#]/g, "").trim();
+    const sourceLines = chunk.split(/[.!?]\s+/);
     
-    // Only highlight if the sentence contains at least one auto-discovered keyword
-    const isTechnical = documentKeywords.some(word => cleanSource.toLowerCase().includes(word));
-    if (!isTechnical) return;
+    answerSentences.forEach(aSen => {
+      const cleanASen = aSen.replace(/<[^>]*>/g, "").trim();
+      if (cleanASen.length < 50) return; // Ignore very short sentences
 
-    const escaped = cleanSource.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
-
-    try {
-      const regex = new RegExp(`(${escaped})`, "i");
-      // Apply subtle styling to avoid "blue walls"
-      if (regex.test(safe) && !safe.includes(`<mark`)) {
-          const style = `background-color: rgba(37, 99, 235, 0.08); border-bottom: 2px solid #3b82f6; padding: 1px 0;`;
-          safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
-      }
-    } catch (e) {}
+      sourceLines.forEach(sLine => {
+        const cleanSLine = sLine.replace(/[*_`#]/g, "").trim();
+        
+        // Only highlight if the similarity is over 85% [cite: 23, 24]
+        if (getSimilarity(cleanASen, cleanSLine) > 0.85) {
+          const escaped = cleanASen.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+          const regex = new RegExp(`(${escaped})`, "i");
+          const style = `background-color: rgba(37, 99, 235, 0.08); border-bottom: 2px solid #3b82f6;`;
+          
+          if (!finalAnswer.includes(style)) {
+             finalAnswer = finalAnswer.replace(regex, `<mark style="${style}">$1</mark>`);
+          }
+        }
+      });
+    });
   });
 
-  return safe.replace(/\n/g, "<br/>");
+  return finalAnswer.replace(/\n/g, "<br/>");
 }
   
 async function sendFeedback(messageId, feedback) {
