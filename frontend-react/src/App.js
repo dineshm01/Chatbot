@@ -402,6 +402,24 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
         >
           Clear
         </button>
+        <div style={{ display: "inline-block", marginLeft: "10px" }}>
+          <label style={{
+            padding: "8px 12px",
+            background: uploading ? "#9ca3af" : "#f3f4f6",
+            border: "1px solid #ddd",
+            borderRadius: "6px",
+            cursor: uploading ? "not-allowed" : "pointer",
+            fontSize: "14px"
+          }}>
+            {uploading ? "⌛ Processing..." : "📁 Upload Document"}
+            <input 
+              type="file" 
+              onChange={uploadFile} 
+              disabled={uploading} 
+              style={{ display: "none" }} // Hide the ugly default input
+            />
+          </label>
+        </div>
         <button 
           onClick={loadHistoryPanel}
           style={{
