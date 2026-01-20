@@ -44,11 +44,9 @@ function convertMarkdownBold(text) {
 
 function highlightSources(answer, chunks) {
   let safe = answer;
-
-  // 1. Convert markdown bold first
   safe = convertMarkdownBold(safe);
 
-  // 2. Security: Escape HTML characters
+  // Security: Escape HTML characters
   safe = safe
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -59,23 +57,24 @@ function highlightSources(answer, chunks) {
     return safe.replace(/\n/g, "<br/>");
   }
 
-  // 3. Filter chunks: Only highlight long, meaningful sentences (over 50 chars)
-  // This prevents highlighting common small words or fragmented phrases.
-  const importantChunks = chunks.filter(chunk => chunk && chunk.length > 50);
+  // THE FIX: Increase the length requirement to 80 characters.
+  // This ensures only full, significant sentences are highlighted.
+  const importantChunks = chunks.filter(chunk => chunk && chunk.length > 80);
 
   importantChunks.forEach(chunk => {
-    // Remove special characters that break regex
     const cleanChunk = chunk.replace(/[*_`#]/g, "").trim();
-
-    // Use a word-boundary check (\b) to ensure we don't highlight fragments inside words
+    
+    // We only highlight if the chunk actually exists in the answer text
     const escaped = cleanChunk
       .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
       .replace(/\s+/g, "\\s+");
 
     try {
+      // Use word boundaries \b to avoid partial word highlights
       const regex = new RegExp(`(${escaped})`, "gi");
-      // Replace the old highlight line with this one for a cleaner look
-safe = safe.replace(regex, `<mark style="background-color: rgba(37, 99, 235, 0.15); color: #1e40af; padding: 2px 4px; border-radius: 4px; border-bottom: 2px solid #2563eb;">$1</mark>`);
+      
+      // Using a very light blue for better readability
+      safe = safe.replace(regex, `<mark style="background-color: rgba(37, 99, 235, 0.1); color: #1e40af; padding: 1px 3px; border-radius: 3px; border-bottom: 1.5px solid #3b82f6;">$1</mark>`);
     } catch (e) {
       console.error("Highlighting error:", e);
     }
