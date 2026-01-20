@@ -325,14 +325,16 @@ def upload_file():
         filepath = os.path.join(UPLOAD_FOLDER, filename)
         file.save(filepath)
 
-        ingest_document(filepath)
+        # FIX: Pass the user_id to the ingest function
+        ingest_document(filepath, request.user_id) 
 
         return jsonify({"message": "Uploaded"}), 200
-
+    
     except Exception as e:
         import traceback
         traceback.print_exc()
         return jsonify({"error": repr(e)}), 500
+        
 
 @app.route("/api/feedback", methods=["POST"])
 @require_auth
@@ -501,6 +503,7 @@ def debug_raw_docs():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
