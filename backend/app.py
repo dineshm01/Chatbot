@@ -14,8 +14,6 @@ from io import BytesIO
 import bcrypt
 from auth import create_token, verify_token
 
-
-
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -196,7 +194,7 @@ def ask():
         "chunks": result.get("chunks", []),
         "feedback": None,
         "bookmarked": False,
-        "created_at": datetime.now(datetime.UTC)
+        "created_at": datetime.now(timezone.utc)
     }
 
     try:
@@ -501,6 +499,7 @@ def debug_raw_docs():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
