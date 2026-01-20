@@ -3,6 +3,7 @@ from utils.embeddings import get_embeddings
 from langchain_community.vectorstores import FAISS
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pymongo import MongoClient
+from datetime import datetime, timezone
 import os
 import re
 
@@ -23,6 +24,13 @@ def ingest_document(filepath, user_id):
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
     chunks = text_splitter.split_documents(docs)
 
+    # Update or Insert user metadata with a timestamp
+    db["user_metadata"].update_one(
+        {"user_id": user_id},
+        {"$set": {"last_upload": datetime.now(timezone.utc)}},
+        upsert=True
+    )
+
     if not chunks:
         raise RuntimeError("No valid text extracted")
 
@@ -36,3 +44,4 @@ def ingest_document(filepath, user_id):
     embeddings = get_embeddings()
     vectorstore = FAISS.from_documents(chunks, embeddings)
     vectorstore.save_local(VECTOR_DIR)
+
