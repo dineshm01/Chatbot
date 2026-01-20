@@ -3,7 +3,7 @@ from flask import Flask, request, jsonify
 from rag_engine import generate_answer
 from pymongo import MongoClient
 from flask_cors import CORS
-from datetime import datetime
+from datetime import UTC
 from werkzeug.utils import secure_filename
 import os
 from ingest import ingest_document
@@ -40,7 +40,7 @@ RATE_LIMIT = 20
 WINDOW_SECONDS = 60
 
 def check_rate_limit(user_id):
-    now = datetime.utcnow()
+    now = datetime.now(datetime.UTC)
     window_start = now - timedelta(seconds=WINDOW_SECONDS)
 
     # Remove old entries
@@ -198,7 +198,7 @@ def ask():
         "chunks": result.get("chunks", []),
         "feedback": None,
         "bookmarked": False,
-        "created_at": datetime.utcnow()
+        "created_at": datetime.now(datetime.UTC)
     }
 
     try:
@@ -501,6 +501,7 @@ def debug_raw_docs():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
