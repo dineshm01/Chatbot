@@ -45,10 +45,10 @@ function convertMarkdownBold(text) {
 function highlightSources(answer, chunks) {
   let safe = answer;
 
-  // Convert markdown bold
+  // 1. Convert markdown bold first
   safe = convertMarkdownBold(safe);
 
-  // Escape everything except our allowed tags
+  // 2. Security: Escape HTML characters
   safe = safe
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -59,23 +59,30 @@ function highlightSources(answer, chunks) {
     return safe.replace(/\n/g, "<br/>");
   }
 
-  chunks.forEach(chunk => {
-    if (!chunk || chunk.length < 20) return;
+  // 3. Filter chunks: Only highlight long, meaningful sentences (over 50 chars)
+  // This prevents highlighting common small words or fragmented phrases.
+  const importantChunks = chunks.filter(chunk => chunk && chunk.length > 50);
 
-    const cleanChunk = chunk.replace(/[*_`#]/g, "");
+  importantChunks.forEach(chunk => {
+    // Remove special characters that break regex
+    const cleanChunk = chunk.replace(/[*_`#]/g, "").trim();
 
+    // Use a word-boundary check (\b) to ensure we don't highlight fragments inside words
     const escaped = cleanChunk
       .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
       .replace(/\s+/g, "\\s+");
 
-    const regex = new RegExp(`(${escaped})`, "gi");
-
-    safe = safe.replace(regex, `<mark>$1</mark>`);
+    try {
+      const regex = new RegExp(`(${escaped})`, "gi");
+      safe = safe.replace(regex, `<mark>$1</mark>`);
+    } catch (e) {
+      console.error("Highlighting error:", e);
+    }
   });
 
   return safe.replace(/\n/g, "<br/>");
 }
-
+  
 async function sendFeedback(messageId, feedback) {
   try {
     await fetch(`${API}/api/feedback`, {
