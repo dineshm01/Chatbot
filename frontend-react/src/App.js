@@ -42,69 +42,60 @@ function convertMarkdownBold(text) {
   return text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 }
 
-// 1. Helper to calculate textual similarity between two strings
-function getSimilarity(s1, s2) {
-  let longer = s1.length < s2.length ? s2 : s1;
-  let shorter = s1.length < s2.length ? s1 : s2;
-  if (longer.length === 0) return 1.0;
-  return (longer.length - editDistance(longer, shorter)) / parseFloat(longer.length);
-}
-
-function editDistance(s1, s2) {
-  s1 = s1.toLowerCase(); s2 = s2.toLowerCase();
-  let costs = new Array();
-  for (let i = 0; i <= s1.length; i++) {
-    let lastValue = i;
-    for (let j = 0; j <= s2.length; j++) {
-      if (i == 0) costs[j] = j;
-      else if (j > 0) {
-        let newValue = costs[j - 1];
-        if (s1.charAt(i - 1) != s2.charAt(j - 1)) newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
-        costs[j - 1] = lastValue; lastValue = newValue;
-      }
-    }
-    if (i > 0) costs[s2.length] = lastValue;
-  }
-  return costs[s2.length];
-}
-
-// 2. Highlighting logic that works for every document
 function highlightSources(answer, chunks) {
   let safe = answer;
   safe = convertMarkdownBold(safe);
-  safe = safe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/&lt;(\/?(mark|strong))&gt;/g, "<$1>");
 
-  if (!chunks || chunks.length === 0) return safe.replace(/\n/g, "<br/>");
+  // 1. Security: Escape HTML
+  safe = safe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/&lt;(\/?(mark|strong))&gt;/g, "<$1>");
 
-  // Split answer into sentences
-  const answerSentences = safe.split(/[.!?]\s+/);
-  let finalAnswer = safe;
+  if (!chunks || chunks.length === 0) {
+    return safe.replace(/\n/g, "<br/>");
+  }
 
+  // 2. Exact Grounding: Extract ALL sentences from ALL document chunks
+  let sourceSentences = [];
   chunks.forEach(chunk => {
-    const sourceLines = chunk.split(/[.!?]\s+/);
-    
-    answerSentences.forEach(aSen => {
-      const cleanASen = aSen.replace(/<[^>]*>/g, "").trim();
-      if (cleanASen.length < 50) return; // Ignore very short sentences
-
-      sourceLines.forEach(sLine => {
-        const cleanSLine = sLine.replace(/[*_`#]/g, "").trim();
-        
-        // Only highlight if the similarity is over 85% [cite: 23, 24]
-        if (getSimilarity(cleanASen, cleanSLine) > 0.85) {
-          const escaped = cleanASen.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
-          const regex = new RegExp(`(${escaped})`, "i");
-          const style = `background-color: rgba(37, 99, 235, 0.08); border-bottom: 2px solid #3b82f6;`;
-          
-          if (!finalAnswer.includes(style)) {
-             finalAnswer = finalAnswer.replace(regex, `<mark style="${style}">$1</mark>`);
-          }
-        }
-      });
-    });
+    if (chunk) {
+      // Split by punctuation followed by a space
+      const sentences = chunk.split(/[.!?]\s+/);
+      sourceSentences.push(...sentences);
+    }
   });
 
-  return finalAnswer.replace(/\n/g, "<br/>");
+  // 3. Clean and filter source sentences
+  // We only care about unique sentences longer than 45 chars to avoid filler words.
+  const uniqueSources = [...new Set(sourceSentences)]
+    .map(s => s.replace(/[*_`#]/g, "").trim())
+    .filter(s => s.length > 45)
+    .sort((a, b) => b.length - a.length);
+
+  // 4. Highlight only if the bot's sentence matches a document sentence
+  uniqueSources.forEach(sourceText => {
+    // Escape special characters for a safe Regex search
+    const escaped = sourceText
+      .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+      .replace(/\s+/g, "\\s+");
+
+    try {
+      // Use word boundaries \b to ensure we don't highlight fragments inside words
+      const regex = new RegExp(`(${escaped})`, "gi");
+      
+      // The style: subtle blue tint with a clear bottom border
+      const style = `background-color: rgba(37, 99, 235, 0.08); border-bottom: 2px solid #3b82f6; padding: 1px 0;`;
+      
+      // Only highlight if not already marked
+      if (regex.test(safe) && !safe.includes(sourceText)) {
+          safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
+      }
+    } catch (e) {}
+  });
+
+  return safe.replace(/\n/g, "<br/>");
 }
   
 async function sendFeedback(messageId, feedback) {
