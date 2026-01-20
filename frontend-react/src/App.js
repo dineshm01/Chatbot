@@ -46,7 +46,7 @@ function highlightSources(answer, chunks) {
   let safe = answer;
   safe = convertMarkdownBold(safe);
 
-  // 1. Security: Escape HTML
+  // 1. Security: Escape HTML characters
   safe = safe
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -57,44 +57,46 @@ function highlightSources(answer, chunks) {
     return safe.replace(/\n/g, "<br/>");
   }
 
-  // 2. Exact Grounding: Extract ALL sentences from ALL document chunks
-  let sourceSentences = [];
+  // 2. Extract every sentence from your document chunks
+  let groundedSentences = [];
   chunks.forEach(chunk => {
     if (chunk) {
-      // Split by punctuation followed by a space
-      const sentences = chunk.split(/[.!?]\s+/);
-      sourceSentences.push(...sentences);
+      // Split by common sentence endings followed by space
+      const lines = chunk.split(/[.!?]\s+/);
+      groundedSentences.push(...lines);
     }
   });
 
-  // 3. Clean and filter source sentences
-  // We only care about unique sentences longer than 45 chars to avoid filler words.
-  const uniqueSources = [...new Set(sourceSentences)]
+  // 3. Clean and filter for unique sentences longer than 35 characters
+  // This removes short fragments and technical noise.
+  const uniqueGrounded = [...new Set(groundedSentences)]
     .map(s => s.replace(/[*_`#]/g, "").trim())
-    .filter(s => s.length > 45)
-    .sort((a, b) => b.length - a.length);
+    .filter(s => s.length > 35)
+    .sort((a, b) => b.length - a.length); // Match longest sentences first
 
-  // 4. Highlight only if the bot's sentence matches a document sentence
-  uniqueSources.forEach(sourceText => {
-    // Escape special characters for a safe Regex search
+  // 4. Highlight ONLY the sentences that match your document exactly
+  uniqueGrounded.forEach(sourceText => {
     const escaped = sourceText
       .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
       .replace(/\s+/g, "\\s+");
 
     try {
-      // Use word boundaries \b to ensure we don't highlight fragments inside words
       const regex = new RegExp(`(${escaped})`, "gi");
       
-      // The style: subtle blue tint with a clear bottom border
-      const style = `background-color: rgba(37, 99, 235, 0.08); border-bottom: 2px solid #3b82f6; padding: 1px 0;`;
+      // Styling: Subtle blue background with a bottom border to show it's "grounded"
+      const highlightStyle = `background-color: rgba(37, 99, 235, 0.08); border-bottom: 2px solid #3b82f6; padding: 1px 0;`;
       
-      // Only highlight if not already marked
-      if (regex.test(safe) && !safe.includes(sourceText)) {
-          safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
+      // We only replace if the sentence is found and not already marked
+      if (regex.test(safe) && !safe.includes(`style="${highlightStyle}"`)) {
+          safe = safe.replace(regex, `<mark style="${highlightStyle}">$1</mark>`);
       }
-    } catch (e) {}
+    } catch (e) {
+      // Skip sentences that cause regex errors
+    }
   });
 
+  return safe.replace(/\n/g, "<br/>");
+}
   return safe.replace(/\n/g, "<br/>");
 }
   
