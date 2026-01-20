@@ -57,41 +57,44 @@ function highlightSources(answer, chunks) {
     return safe.replace(/\n/g, "<br/>");
   }
 
-  // 1. Extract sentences from chunks and filter for quality
+  // 1. Technical keywords from your specific document to validate highlights
+  const techKeywords = ["generator", "discriminator", "adversarial", "synthetic", "latent", "backpropagate", "indistinguishable", "DCGAN", "SRGAN", "CycleGAN", "InfoGAN"];
+
+  // 2. Extract and unique-ify source sentences
   let sourceSentences = [];
   chunks.forEach(chunk => {
     if (chunk) {
-      // Split by punctuation followed by space
       const split = chunk.split(/[.!?]\s+/);
       sourceSentences.push(...split);
     }
   });
 
-  // 2. Filter for unique, long sentences (over 60 chars) to avoid highlighting common phrases
-  const filteredSources = [...new Set(sourceSentences)]
-    .filter(s => s.trim().length > 60) 
+  const uniqueSources = [...new Set(sourceSentences)]
+    .filter(s => s.trim().length > 70) // Increased length for higher precision
     .sort((a, b) => b.length - a.length);
 
-  // 3. Apply highlighting with a "First Match Only" rule per sentence
-  filteredSources.forEach(sourceText => {
+  // 3. Highlight only if the sentence matches AND contains a technical keyword
+  uniqueSources.forEach(sourceText => {
     const cleanSource = sourceText.replace(/[*_`#]/g, "").trim();
     
-    // Escape for Regex
+    // Check if this source sentence contains at least one technical keyword
+    const hasTechTerm = techKeywords.some(word => cleanSource.toLowerCase().includes(word));
+    if (!hasTechTerm) return;
+
     const escaped = cleanSource
       .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
       .replace(/\s+/g, "\\s+");
 
     try {
-      // The "gi" regex finds the match
       const regex = new RegExp(`(${escaped})`, "i");
       
-      // We check if it exists in the 'safe' string and hasn't been wrapped in <mark> yet
-      if (regex.test(safe) && !safe.includes(`<mark style="background-color: rgba(37, 99, 235, 0.1);`)) {
-          const highlightStyle = `background-color: rgba(37, 99, 235, 0.1); border-bottom: 2px solid #3b82f6; padding: 1px 0;`;
+      // Ensure we don't highlight something already highlighted
+      if (regex.test(safe) && !safe.includes(`<mark`)) {
+          const highlightStyle = `background-color: rgba(37, 99, 235, 0.08); border-bottom: 2px solid #3b82f6; padding: 1px 0;`;
           safe = safe.replace(regex, `<mark style="${highlightStyle}">$1</mark>`);
       }
     } catch (e) {
-      // Skip invalid regex
+      // Skip errors
     }
   });
 
