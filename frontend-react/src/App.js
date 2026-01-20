@@ -144,17 +144,31 @@ async function uploadFile(e) {
     } catch {
       throw new Error("Invalid server response");
     }
+    
     if (!res.ok) {
       throw new Error(data.error || "Upload failed");
     }
-    alert(data.message || "Uploaded");
+
+    // --- THE FIX STARTS HERE ---
+    alert(data.message || "Uploaded successfully!");
+    
+    // 1. Clear the file input so the filename disappears from the UI
+    e.target.value = null; 
+    
+    // 2. If you are in Strict Mode, the UI will now know documents exist
+    setMessages(prev => [...prev, { 
+      role: "bot", 
+      text: "✅ Document processed. You can now ask questions about it!" 
+    }]);
+    // ----------------------------
+
   } catch (err) {
-    alert("Upload failed");  
+    alert("Upload failed: " + err.message);  
   } finally {
     setUploading(false);
   }
 }
-
+  
 
 async function loadHistoryItem(id) {
   const res = await fetch(`${API}/api/history/id/${id}`, {
