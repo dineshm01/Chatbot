@@ -42,15 +42,15 @@ function convertMarkdownBold(text) {
   return text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 }
 
-// 1. Helper function to find the most important words in ANY document
-function extractDynamicKeywords(chunks) {
+function getDynamicKeywords(chunks) {
   if (!chunks || chunks.length === 0) return [];
-
-  const allText = chunks.join(" ").toLowerCase();
-  const words = allText.match(/\b[a-z]{5,}\b/g) || []; // Only look at words with 5+ letters
   
-  // Standard English stopwords to ignore
-  const stopWords = new Set(["about", "these", "would", "could", "should", "there", "their", "which", "where", "after", "before", "using", "through"]);
+  // Combine all text and find words with 5+ characters
+  const allText = chunks.join(" ").toLowerCase();
+  const words = allText.match(/\b[a-z]{5,}\b/g) || [];
+  
+  // Ignore common filler words
+  const stopWords = new Set(["about", "these", "would", "there", "their", "which", "using", "through", "after", "before"]);
   
   const freqMap = {};
   words.forEach(word => {
@@ -59,27 +59,27 @@ function extractDynamicKeywords(chunks) {
     }
   });
 
-  // Sort words by frequency and take the top 15 most common technical terms
+  // Return the top 15 most frequent unique words from this specific file
   return Object.entries(freqMap)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 15)
     .map(entry => entry[0]);
 }
-
-// 2. Updated Highlighting Logic
+  
 function highlightSources(answer, chunks) {
   let safe = answer;
   safe = convertMarkdownBold(safe);
 
-  // Security: Escape HTML
+  // Security and line breaks
   safe = safe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
              .replace(/&lt;(\/?(mark|strong))&gt;/g, "<$1>");
 
   if (!chunks || chunks.length === 0) return safe.replace(/\n/g, "<br/>");
 
-  // DYNAMIC KEYWORDS: The code discovers the document's topic automatically
-  const dynamicTechTerms = extractDynamicKeywords(chunks);
+  // DISCOVERY: Find keywords for THIS specific document
+  const documentKeywords = getDynamicKeywords(chunks);
 
+  // Split document into individual sentences
   let sourceSentences = [];
   chunks.forEach(chunk => {
     if (chunk) {
@@ -88,24 +88,26 @@ function highlightSources(answer, chunks) {
     }
   });
 
+  // Highlight only if a sentence is unique and contains a discovered keyword
   const uniqueSources = [...new Set(sourceSentences)]
-    .filter(s => s.trim().length > 70) 
+    .filter(s => s.trim().length > 65) // High precision: ignore fragments
     .sort((a, b) => b.length - a.length);
 
   uniqueSources.forEach(sourceText => {
     const cleanSource = sourceText.replace(/[*_`#]/g, "").trim();
     
-    // Validate highlighting using the auto-discovered keywords
-    const hasDynamicTerm = dynamicTechTerms.some(word => cleanSource.toLowerCase().includes(word));
-    if (!hasDynamicTerm) return;
+    // Only highlight if the sentence contains at least one auto-discovered keyword
+    const isTechnical = documentKeywords.some(word => cleanSource.toLowerCase().includes(word));
+    if (!isTechnical) return;
 
     const escaped = cleanSource.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
 
     try {
       const regex = new RegExp(`(${escaped})`, "i");
+      // Apply subtle styling to avoid "blue walls"
       if (regex.test(safe) && !safe.includes(`<mark`)) {
-          const highlightStyle = `background-color: rgba(37, 99, 235, 0.08); border-bottom: 2px solid #3b82f6; padding: 1px 0;`;
-          safe = safe.replace(regex, `<mark style="${highlightStyle}">$1</mark>`);
+          const style = `background-color: rgba(37, 99, 235, 0.08); border-bottom: 2px solid #3b82f6; padding: 1px 0;`;
+          safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
       }
     } catch (e) {}
   });
