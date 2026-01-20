@@ -55,7 +55,7 @@ def generate_answer(question, mode, memory=None, strict=False, user_id=None):
     if m:
         idx = int(m.group(1))
         # find() returns a cursor, which supports .skip() and .limit()
-        cursor = raw_docs.find({}, sort=[("index", 1)]).skip(idx - 1).limit(1)
+        cursor = raw_docs.find({"user_id": user_id}, sort=[("index", 1)]).skip(idx - 1).limit(1)
     
         # Extract the document from the cursor
         items = list(cursor)
@@ -175,6 +175,7 @@ def generate_answer(question, mode, memory=None, strict=False, user_id=None):
         }
     }
     
+
 
 
 
