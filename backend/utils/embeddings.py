@@ -37,10 +37,16 @@ class HFEmbeddings(Embeddings):
 
     def embed_query(self, text):
         res = embed_texts([text])
-        return res[0] if res else []
+        if not res:
+            return []
+        result = res[0]
+        if hasattr(result, "tolist"):
+            result = result.tolist()
+        return result
 
 def get_embeddings():
     return HFEmbeddings()
+
 
 
 
