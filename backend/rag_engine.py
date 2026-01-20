@@ -110,11 +110,24 @@ def generate_answer(question, mode, memory=None, strict=False, user_id=None):
             
     context_text = "" if mode == "Diagram" else truncate_docs(filtered_docs)
 
-    if not filtered_docs and not memory:
+    # 1. First, check if the Vectorstore exists at all
+    v_store = load_vectorstore()
+
+    # 2. Update the "No documents" check
+    if not v_store:
         return {
-            "text": "I couldn't find this in the uploaded documents. Please try rephrasing or upload relevant material.",
+            "text": "❌ No documents have been uploaded yet. Please upload a file to begin.",
             "confidence": "No documents",
-            "coverage": 0,
+            "coverage": {"grounded": 0, "general": 0},
+            "sources": []
+        }
+
+    # 3. If the store exists but this specific question found nothing
+    if not filtered_docs:
+        return {
+            "text": "I can see your documents, but I couldn't find a specific answer to that question within them. Could you try rephrasing?",
+            "confidence": "Document present, no match",
+            "coverage": {"grounded": 0, "general": 0},
             "sources": []
         }
 
@@ -175,6 +188,7 @@ def generate_answer(question, mode, memory=None, strict=False, user_id=None):
         }
     }
     
+
 
 
 
