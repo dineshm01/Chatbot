@@ -181,7 +181,7 @@ def ask():
         })
 
     try:
-        result = generate_answer(q, mode, memory, strict)
+        result = generate_answer(q, mode, memory, strict, user_id=request.user_id)
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
@@ -503,6 +503,7 @@ def debug_raw_docs():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
