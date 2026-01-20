@@ -46,7 +46,7 @@ function highlightSources(answer, chunks) {
   let safe = answer;
   safe = convertMarkdownBold(safe);
 
-  // Security: Escape HTML characters
+  // Security: Escape HTML
   safe = safe
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -57,32 +57,46 @@ function highlightSources(answer, chunks) {
     return safe.replace(/\n/g, "<br/>");
   }
 
-  // THE FIX: Increase the length requirement to 80 characters.
-  // This ensures only full, significant sentences are highlighted.
-  const importantChunks = chunks.filter(chunk => chunk && chunk.length > 80);
+  // 1. Collect all sentences from all chunks
+  let allSentences = [];
+  chunks.forEach(chunk => {
+    if (chunk) {
+      // Split chunks into individual sentences based on periods
+      const sentences = chunk.split(/[.!?]\s+/);
+      allSentences.push(...sentences);
+    }
+  });
 
-  importantChunks.forEach(chunk => {
-    const cleanChunk = chunk.replace(/[*_`#]/g, "").trim();
-    
-    // We only highlight if the chunk actually exists in the answer text
-    const escaped = cleanChunk
+  // 2. Sort sentences by length (longest first) to avoid nested highlighting issues
+  // Filter for sentences that are meaningful (between 40 and 250 characters)
+  const validSentences = allSentences
+    .filter(s => s.trim().length > 40 && s.trim().length < 250)
+    .sort((a, b) => b.length - a.length);
+
+  // 3. Highlight only specific sentence matches
+  validSentences.forEach(sentence => {
+    const cleanSentence = sentence.replace(/[*_`#]/g, "").trim();
+    if (cleanSentence.length < 40) return;
+
+    const escaped = cleanSentence
       .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
       .replace(/\s+/g, "\\s+");
 
     try {
-      // Use word boundaries \b to avoid partial word highlights
       const regex = new RegExp(`(${escaped})`, "gi");
       
-      // Using a very light blue for better readability
-      safe = safe.replace(regex, `<mark style="background-color: rgba(37, 99, 235, 0.1); color: #1e40af; padding: 1px 3px; border-radius: 3px; border-bottom: 1.5px solid #3b82f6;">$1</mark>`);
+      // Using a very subtle style: thin underline and light tint
+      const highlightStyle = `background-color: rgba(37, 99, 235, 0.08); border-bottom: 2px solid #3b82f6; padding: 1px 0;`;
+      
+      safe = safe.replace(regex, `<mark style="${highlightStyle}">$1</mark>`);
     } catch (e) {
-      console.error("Highlighting error:", e);
+      // Ignore regex errors for specific sentences
     }
   });
 
   return safe.replace(/\n/g, "<br/>");
 }
-  
+
 async function sendFeedback(messageId, feedback) {
   try {
     await fetch(`${API}/api/feedback`, {
