@@ -74,7 +74,8 @@ function highlightSources(answer, chunks) {
 
     try {
       const regex = new RegExp(`(${escaped})`, "gi");
-      safe = safe.replace(regex, `<mark>$1</mark>`);
+      // Replace the old highlight line with this one for a cleaner look
+safe = safe.replace(regex, `<mark style="background-color: rgba(37, 99, 235, 0.15); color: #1e40af; padding: 2px 4px; border-radius: 4px; border-bottom: 2px solid #2563eb;">$1</mark>`);
     } catch (e) {
       console.error("Highlighting error:", e);
     }
