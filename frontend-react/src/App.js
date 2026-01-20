@@ -97,8 +97,6 @@ function highlightSources(answer, chunks) {
 
   return safe.replace(/\n/g, "<br/>");
 }
-  return safe.replace(/\n/g, "<br/>");
-}
   
 async function sendFeedback(messageId, feedback) {
   try {
