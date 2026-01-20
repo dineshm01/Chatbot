@@ -29,7 +29,7 @@ def get_retriever():
         return None
     return vectorstore.as_retriever(
     search_kwargs={
-        "k": 12,
+        "k": 20,
         "score_threshold": 0.1
     }
 )
@@ -82,6 +82,7 @@ def compute_coverage(docs, answer=None, threshold=70):
         "grounded": grounded_pct,
         "general": general_pct
     }
+
 
 
 
