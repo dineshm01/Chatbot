@@ -50,8 +50,7 @@ def extract_grounded_spans(answer, docs, threshold=0.2):
 
     return grounded, debug
     
-def generate_answer(question, mode, memory=None, strict=False):
-    # NEW CORRECTED CODE
+def generate_answer(question, mode, memory=None, strict=False, user_id=None): 
     m = re.search(r"(\d+)(st|nd|rd|th)?\s+question", question.lower())
     if m:
         idx = int(m.group(1))
@@ -176,6 +175,7 @@ def generate_answer(question, mode, memory=None, strict=False):
         }
     }
     
+
 
 
 
