@@ -57,46 +57,47 @@ function highlightSources(answer, chunks) {
     return safe.replace(/\n/g, "<br/>");
   }
 
-  // 1. Collect all sentences from all chunks
-  let allSentences = [];
+  // 1. Extract sentences from chunks and filter for quality
+  let sourceSentences = [];
   chunks.forEach(chunk => {
     if (chunk) {
-      // Split chunks into individual sentences based on periods
-      const sentences = chunk.split(/[.!?]\s+/);
-      allSentences.push(...sentences);
+      // Split by punctuation followed by space
+      const split = chunk.split(/[.!?]\s+/);
+      sourceSentences.push(...split);
     }
   });
 
-  // 2. Sort sentences by length (longest first) to avoid nested highlighting issues
-  // Filter for sentences that are meaningful (between 40 and 250 characters)
-  const validSentences = allSentences
-    .filter(s => s.trim().length > 40 && s.trim().length < 250)
+  // 2. Filter for unique, long sentences (over 60 chars) to avoid highlighting common phrases
+  const filteredSources = [...new Set(sourceSentences)]
+    .filter(s => s.trim().length > 60) 
     .sort((a, b) => b.length - a.length);
 
-  // 3. Highlight only specific sentence matches
-  validSentences.forEach(sentence => {
-    const cleanSentence = sentence.replace(/[*_`#]/g, "").trim();
-    if (cleanSentence.length < 40) return;
-
-    const escaped = cleanSentence
+  // 3. Apply highlighting with a "First Match Only" rule per sentence
+  filteredSources.forEach(sourceText => {
+    const cleanSource = sourceText.replace(/[*_`#]/g, "").trim();
+    
+    // Escape for Regex
+    const escaped = cleanSource
       .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
       .replace(/\s+/g, "\\s+");
 
     try {
-      const regex = new RegExp(`(${escaped})`, "gi");
+      // The "gi" regex finds the match
+      const regex = new RegExp(`(${escaped})`, "i");
       
-      // Using a very subtle style: thin underline and light tint
-      const highlightStyle = `background-color: rgba(37, 99, 235, 0.08); border-bottom: 2px solid #3b82f6; padding: 1px 0;`;
-      
-      safe = safe.replace(regex, `<mark style="${highlightStyle}">$1</mark>`);
+      // We check if it exists in the 'safe' string and hasn't been wrapped in <mark> yet
+      if (regex.test(safe) && !safe.includes(`<mark style="background-color: rgba(37, 99, 235, 0.1);`)) {
+          const highlightStyle = `background-color: rgba(37, 99, 235, 0.1); border-bottom: 2px solid #3b82f6; padding: 1px 0;`;
+          safe = safe.replace(regex, `<mark style="${highlightStyle}">$1</mark>`);
+      }
     } catch (e) {
-      // Ignore regex errors for specific sentences
+      // Skip invalid regex
     }
   });
 
   return safe.replace(/\n/g, "<br/>");
 }
-
+  
 async function sendFeedback(messageId, feedback) {
   try {
     await fetch(`${API}/api/feedback`, {
