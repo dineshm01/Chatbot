@@ -46,7 +46,7 @@ function highlightSources(answer, chunks) {
   let safe = answer;
   safe = convertMarkdownBold(safe);
 
-  // 1. Security: Escape HTML characters
+  // 1. Security & Formatting
   safe = safe
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -57,25 +57,26 @@ function highlightSources(answer, chunks) {
     return safe.replace(/\n/g, "<br/>");
   }
 
-  // 2. Extract every sentence from your document chunks
-  let groundedSentences = [];
+  // 2. Extract and Unique-ify source sentences
+  let sourceSentences = [];
   chunks.forEach(chunk => {
     if (chunk) {
-      // Split by common sentence endings followed by space
+      // Split by punctuation followed by a space
       const lines = chunk.split(/[.!?]\s+/);
-      groundedSentences.push(...lines);
+      sourceSentences.push(...lines);
     }
   });
 
-  // 3. Clean and filter for unique sentences longer than 35 characters
-  // This removes short fragments and technical noise.
-  const uniqueGrounded = [...new Set(groundedSentences)]
+  // 3. Filter for quality (ignore short filler text)
+  // We only care about sentences over 60 chars for high-precision grounding.
+  const uniqueGrounded = [...new Set(sourceSentences)]
     .map(s => s.replace(/[*_`#]/g, "").trim())
-    .filter(s => s.length > 35)
-    .sort((a, b) => b.length - a.length); // Match longest sentences first
+    .filter(s => s.length > 60)
+    .sort((a, b) => b.length - a.length);
 
-  // 4. Highlight ONLY the sentences that match your document exactly
+  // 4. Highlight with Single-Pass Guard
   uniqueGrounded.forEach(sourceText => {
+    // Escape for Regex
     const escaped = sourceText
       .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
       .replace(/\s+/g, "\\s+");
@@ -83,15 +84,15 @@ function highlightSources(answer, chunks) {
     try {
       const regex = new RegExp(`(${escaped})`, "gi");
       
-      // Styling: Subtle blue background with a bottom border to show it's "grounded"
-      const highlightStyle = `background-color: rgba(37, 99, 235, 0.08); border-bottom: 2px solid #3b82f6; padding: 1px 0;`;
+      // Styling: Professional light blue with a subtle border
+      const highlightStyle = `background-color: rgba(37, 99, 235, 0.1); border-bottom: 2px solid #3b82f6; padding: 1px 0; border-radius: 2px;`;
       
-      // We only replace if the sentence is found and not already marked
-      if (regex.test(safe) && !safe.includes(`style="${highlightStyle}"`)) {
+      // CRITICAL FIX: Only highlight if the sentence is present AND not already highlighted
+      if (regex.test(safe) && !safe.includes(sourceText)) {
           safe = safe.replace(regex, `<mark style="${highlightStyle}">$1</mark>`);
       }
     } catch (e) {
-      // Skip sentences that cause regex errors
+      console.error("Highlighting skipped for specific sentence:", e);
     }
   });
 
