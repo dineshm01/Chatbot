@@ -45,44 +45,38 @@ function convertMarkdownBold(text) {
 
 function highlightSources(answer, chunks) {
   let safe = answer;
-  safe = convertMarkdownBold(safe);
-
-  // Security: Escape HTML but allow mark tags
-  safe = safe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-             .replace(/&lt;(\/?(mark|strong))&gt;/g, "<$1>");
-
   if (!chunks || chunks.length === 0) return safe.replace(/\n/g, "<br/>");
 
   const normalize = (text) => 
     text.toLowerCase().replace(/[*_`#‹›]/g, "").replace(/\s+/g, " ").trim();
 
-  let sourceSentences = [];
+  // 1. Break chunks into technical fragments (on dashes, colons, or newlines)
+  let technicalFragments = [];
   chunks.forEach(chunk => {
     if (chunk) {
-      // Split PPTX chunks into smaller technical fragments (on dashes, colons, or newlines)
-      const fragments = chunk.split(/[.!?\n\-:]+/);
-      sourceSentences.push(...fragments);
+      const parts = chunk.split(/[.!?\n\-:]+/);
+      technicalFragments.push(...parts);
     }
   });
 
-  // Filter for unique technical phrases with at least 3 words
-  const uniqueGrounded = [...new Set(sourceSentences)]
+  // 2. Sort by length so we match longer phrases first
+  const uniqueGrounded = [...new Set(technicalFragments)]
     .map(s => s.trim())
-    .filter(s => s.split(" ").length >= 3) 
+    .filter(s => s.split(" ").length >= 3) // Only phrases with 3+ words
     .sort((a, b) => b.length - a.length);
 
   uniqueGrounded.forEach(sourceText => {
     const cleanSource = normalize(sourceText);
-    if (cleanSource.length < 12) return;
+    if (cleanSource.length < 10) return;
 
-    // Create a fuzzy regex that allows the technical fragment to match rephrased text
+    // 3. Use a Regex that is flexible with rephrasing
     const escaped = cleanSource.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
 
     try {
       const regex = new RegExp(`(${escaped})`, "gi");
       const style = `background-color: rgba(37, 99, 235, 0.15); border-bottom: 2px solid #3b82f6;`;
       
-      // If the technical fragment is in the answer, highlight it blue
+      // If the answer contains this technical phrase, highlight it
       if (normalize(safe).includes(cleanSource) && !safe.includes(style)) {
           safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
       }
