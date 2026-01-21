@@ -53,37 +53,41 @@ function highlightSources(answer, chunks) {
 
   if (!chunks || chunks.length === 0) return safe.replace(/\n/g, "<br/>");
 
+  // Improved normalization to remove PPTX artifacts
   const normalize = (text) => 
-    text.toLowerCase().replace(/[*_`#]/g, "").replace(/\s+/g, " ").trim();
+    text.toLowerCase()
+        .replace(/[*_`#‹›]/g, "") // Added PPTX bracket symbols to removal
+        .replace(/\s+/g, " ")
+        .trim();
 
-  // Extract precise sentences from document chunks
   let sourceSentences = [];
   chunks.forEach(chunk => {
     if (chunk) {
-      const lines = chunk.split(/[.!?]\s+/);
+      // Split by common delimiters but keep meaningful fragments
+      const lines = chunk.split(/[.!?\n]\s*/);
       sourceSentences.push(...lines);
     }
   });
 
-  // Filter for unique technical facts over 30 characters
   const uniqueGrounded = [...new Set(sourceSentences)]
-    .map(s => s.trim())
-    .filter(s => s.length > 30)
+    .map(s => normalize(s))
+    .filter(s => s.length > 25) // Lowered to 25 to catch fragmented PPTX lines
     .sort((a, b) => b.length - a.length);
 
   uniqueGrounded.forEach(sourceText => {
-    const cleanSource = normalize(sourceText);
-    if (cleanSource.length < 20) return;
-
-    // Create a flexible regex that ignores minor character differences
-    const escaped = cleanSource.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+    // Create a fuzzy regex pattern: replaces spaces with a match-anything bridge
+    // This allows "GAN consists of" to match "GAN consists of..." in the answer
+    const fuzzyPattern = sourceText
+      .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+      .replace(/\s+/g, "[\\s\\W_]+"); // Matches spaces, punctuation, or formatting
 
     try {
-      const regex = new RegExp(`(${escaped})`, "gi");
-      const style = `background-color: rgba(37, 99, 235, 0.08); border-bottom: 2px solid #3b82f6;`;
+      const regex = new RegExp(`(${fuzzyPattern})`, "gi");
+      const style = `background-color: rgba(37, 99, 235, 0.12); border-bottom: 2px solid #3b82f6;`;
       
-      // We check against the normalized version of the whole answer
-      if (normalize(safe).includes(cleanSource) && !safe.includes(style)) {
+      // Apply the highlight if the pattern exists in the answer
+      if (regex.test(normalize(safe)) && !safe.includes(style)) {
+          // We apply it to the actual safe string using the original pattern
           safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
       }
     } catch (e) {}
