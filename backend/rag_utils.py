@@ -4,12 +4,10 @@ from langchain_community.vectorstores import FAISS
 from utils.embeddings import get_embeddings
 from rapidfuzz import fuzz
 
-
-# This finds the exact folder where THIS file (rag_utils.py) is sitting
-BASE_DIR = os.path.dirname(os.path.abspath(__file__)) 
-
-# This joins it with 'vectorstore' so it matches /app/backend/vectorstore
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# This forces the folder to be 'backend/vectorstore' which matches your persistent volume
 VECTOR_DIR = os.path.join(BASE_DIR, "vectorstore")
+
 def load_vectorstore():
     # Check if the index exists on the persistent disk
     index_file = os.path.join(VECTOR_DIR, "index.faiss")
@@ -78,3 +76,4 @@ def compute_coverage(docs, answer=None, threshold=80):
 
     grounded_pct = int((grounded_count / len(sentences)) * 100)
     return {"grounded": grounded_pct, "general": 100 - grounded_pct}
+
