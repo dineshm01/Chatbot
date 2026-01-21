@@ -285,6 +285,7 @@ async function ask() {
       confidence: data.confidence,
       coverage: data.coverage,
       sources: data.sources,
+      raw_retrieval: data.raw_retrieval,
       feedback: null,
       bookmarked: false      
     };
@@ -540,7 +541,8 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
             >
               {m.role === "bot" ? (
                 <div dangerouslySetInnerHTML={{ __html: m.text }} />
-                {m.role === "bot" && showDebug && m.raw_retrieval && (
+
+                {showDebug && m.raw_retrieval && (
                   <div style={{
                     marginTop: "12px", 
                     padding: "10px", 
