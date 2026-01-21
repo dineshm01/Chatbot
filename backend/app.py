@@ -156,15 +156,17 @@ def login():
 @app.route("/api/ask", methods=["POST"])
 @require_auth
 def ask():
+    # 1. Initialize filtered_docs immediately to prevent NameError
+    filtered_docs = [] 
+
     if not check_rate_limit(request.user_id):
-        return jsonify({"error": "Rate limit exceeded. Max 20 questions per minute."}), 429
+        return jsonify({"error": "Rate limit exceeded."}), 429
 
     data = request.json or {}
     q = data.get("question", "").strip()
     mode = data.get("mode", "Detailed")
     memory = data.get("memory", [])
     strict = data.get("strict", False)
-
 
     if not q:
         return jsonify({"error": "Question is required"}), 400
@@ -174,12 +176,25 @@ def ask():
         return jsonify({
             "text": "Hi! 👋 How can I help you?",
             "confidence": "Greeting",
-            "coverage": 0
+            "coverage": {"grounded": 0, "general": 0},
+            "raw_retrieval": []
         })
 
     try:
+        # Generate the answer
         result = generate_answer(q, mode, memory, strict, user_id=request.user_id)
+        
+        # 2. Correctly retrieve and filter docs for the Metadata Preview
+        from rag_utils import get_retriever
+        retriever = get_retriever()
+        if retriever:
+            retrieved_docs = retriever.invoke(q)
+            # Filter and assign to the variable used in the return statement
+            filtered_docs = [d for d in retrieved_docs if d.metadata.get("ocr_confidence", 1.0) >= 0.5]
+            
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 400
 
     display_text = result.get("display_text", result["text"])
@@ -193,29 +208,20 @@ def ask():
         "coverage": result.get("coverage", 0),
         "sources": result.get("sources", []),
         "chunks": result.get("chunks", []),
-        "feedback": None,
-        "bookmarked": False,
         "created_at": datetime.now(timezone.utc)
     }
-
-    try:
-        res = queries.insert_one(record)
-        record_id = str(res.inserted_id)
-        
-    except Exception as e:
-        print("Mongo insert failed:", e)
+    res = queries.insert_one(record)
 
     return jsonify({
-        "id": record_id,
+        "id": str(res.inserted_id),
         "text": display_text,
         "confidence": result["confidence"],
         "coverage": result["coverage"],
         "chunks": result.get("chunks", []),
-        "raw_retrieval": [d.page_content for d in filtered_docs],
         "sources": result.get("sources", []),
-        "debug": result.get("debug", {})
+        "raw_retrieval": [d.page_content for d in filtered_docs] # Now safe to use
     })
-
+    
 @app.route("/api/history", methods=["GET"])
 @require_auth
 def get_history():
@@ -501,6 +507,7 @@ def debug_raw_docs():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
