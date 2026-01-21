@@ -55,7 +55,7 @@ function highlightSources(answer, chunks) {
   const normalize = (text) => 
     text.toLowerCase().replace(/[*_`#]/g, "").replace(/\s+/g, " ").trim();
 
-  // Extract sentences from chunks
+  // Extract precise sentences from document chunks
   let sourceSentences = [];
   chunks.forEach(chunk => {
     if (chunk) {
@@ -64,23 +64,25 @@ function highlightSources(answer, chunks) {
     }
   });
 
-  // Filter for unique technical facts over 30 chars
+  // Filter for unique technical facts over 30 characters
   const uniqueGrounded = [...new Set(sourceSentences)]
     .map(s => s.trim())
     .filter(s => s.length > 30)
     .sort((a, b) => b.length - a.length);
 
   uniqueGrounded.forEach(sourceText => {
-    const cleanSource = sourceText.replace(/[*_`#]/g, "").trim();
-    // Escape for Regex
+    const cleanSource = normalize(sourceText);
+    if (cleanSource.length < 20) return;
+
+    // Create a flexible regex that ignores minor character differences
     const escaped = cleanSource.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
 
     try {
       const regex = new RegExp(`(${escaped})`, "gi");
       const style = `background-color: rgba(37, 99, 235, 0.08); border-bottom: 2px solid #3b82f6;`;
       
-      // Match against normalized version but apply to original safe string
-      if (normalize(safe).includes(normalize(cleanSource)) && !safe.includes(style)) {
+      // We check against the normalized version of the whole answer
+      if (normalize(safe).includes(cleanSource) && !safe.includes(style)) {
           safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
       }
     } catch (e) {}
