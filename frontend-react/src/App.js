@@ -50,32 +50,33 @@ function highlightSources(answer, chunks) {
   const normalize = (text) => 
     text.toLowerCase().replace(/[*_`#‹›]/g, "").replace(/\s+/g, " ").trim();
 
-  let fragments = [];
+  // 1. Extract technical "Noun Phrases" from your PPTX chunks
+  let technicalTerms = [];
   chunks.forEach(chunk => {
     if (chunk) {
-      // Split on punctuation to find small technical phrases
-      const parts = chunk.split(/[.!?\n\-:]+/);
-      fragments.push(...parts);
+      // Split on punctuation AND common filler words to find the "meat" of the technical fact
+      const terms = chunk.split(/[.!?\n\-:,;]|\b(?:is|are|was|were|the|an|a|to|for|with|from)\b/gi);
+      technicalTerms.push(...terms);
     }
   });
 
-  // Filter for unique phrases that are actually technical facts (3+ words)
-  const uniqueGrounded = [...new Set(fragments)]
+  // 2. Filter for specific technical labels found in your slides
+  const uniqueGrounded = [...new Set(technicalTerms)]
     .map(s => s.trim())
-    .filter(s => s.split(" ").length >= 2 && s.length > 8)
+    .filter(s => s.length > 8) // Long enough to be a technical term, not a random word
     .sort((a, b) => b.length - a.length);
 
   uniqueGrounded.forEach(sourceText => {
     const cleanSource = normalize(sourceText);
     
-    // Create a regex that allows the AI to rephrase words like "and" or "the"
+    // 3. Create a flexible regex for the technical term
     const escaped = cleanSource.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
 
     try {
-      const regex = new RegExp(`(${escaped})`, "gi");
+      const regex = new RegExp(`\\b(${escaped})\\b`, "gi");
       const style = `background-color: rgba(37, 99, 235, 0.18); border-bottom: 2px solid #3b82f6; color: inherit;`;
       
-      // Check if the clean phrase exists anywhere in the normalized answer
+      // If the answer contains this specific technical term, highlight it blue
       if (normalize(safe).includes(cleanSource) && !safe.includes(style)) {
           safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
       }
