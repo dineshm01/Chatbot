@@ -50,33 +50,32 @@ function highlightSources(answer, chunks) {
   const normalize = (text) => 
     text.toLowerCase().replace(/[*_`#‹›]/g, "").replace(/\s+/g, " ").trim();
 
-  // 1. Break chunks into technical fragments (on dashes, colons, or newlines)
-  let technicalFragments = [];
+  let fragments = [];
   chunks.forEach(chunk => {
     if (chunk) {
+      // Split on punctuation to find small technical phrases
       const parts = chunk.split(/[.!?\n\-:]+/);
-      technicalFragments.push(...parts);
+      fragments.push(...parts);
     }
   });
 
-  // 2. Sort by length so we match longer phrases first
-  const uniqueGrounded = [...new Set(technicalFragments)]
+  // Filter for unique phrases that are actually technical facts (3+ words)
+  const uniqueGrounded = [...new Set(fragments)]
     .map(s => s.trim())
-    .filter(s => s.split(" ").length >= 3) // Only phrases with 3+ words
+    .filter(s => s.split(" ").length >= 2 && s.length > 8)
     .sort((a, b) => b.length - a.length);
 
   uniqueGrounded.forEach(sourceText => {
     const cleanSource = normalize(sourceText);
-    if (cleanSource.length < 10) return;
-
-    // 3. Use a Regex that is flexible with rephrasing
+    
+    // Create a regex that allows the AI to rephrase words like "and" or "the"
     const escaped = cleanSource.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
 
     try {
       const regex = new RegExp(`(${escaped})`, "gi");
-      const style = `background-color: rgba(37, 99, 235, 0.15); border-bottom: 2px solid #3b82f6;`;
+      const style = `background-color: rgba(37, 99, 235, 0.18); border-bottom: 2px solid #3b82f6; color: inherit;`;
       
-      // If the answer contains this technical phrase, highlight it
+      // Check if the clean phrase exists anywhere in the normalized answer
       if (normalize(safe).includes(cleanSource) && !safe.includes(style)) {
           safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
       }
