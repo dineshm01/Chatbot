@@ -57,10 +57,11 @@ def compute_coverage(docs, answer=None, threshold=80):
     if not docs or not answer:
         return {"grounded": 0, "general": 100}
 
-    # Normalize source text exactly as done in ingest.py
+    # Clean document text to create a standardized search space
     doc_text = " ".join([" ".join(d.page_content.split()) for d in docs]).lower()
+    doc_text = doc_text.replace("*", "").replace("#", "")
     
-    # Split LLM answer and normalize each sentence
+    # Split LLM answer into sentences longer than 30 chars
     sentences = [s.strip() for s in re.split(r'[.!?]', answer) if len(s.strip()) > 30]
 
     if not sentences:
@@ -68,10 +69,10 @@ def compute_coverage(docs, answer=None, threshold=80):
 
     grounded_count = 0
     for s in sentences:
-        # Clean the sentence for comparison
+        # Standardize the sentence for comparison
         clean_s = " ".join(s.lower().split()).replace("*", "").replace("#", "")
         
-        # Exact substring check is often more reliable than fuzzy for RAG grounding
+        # Check for direct inclusion or high fuzzy similarity
         if clean_s in doc_text or fuzz.partial_ratio(clean_s, doc_text) >= threshold:
             grounded_count += 1
 
