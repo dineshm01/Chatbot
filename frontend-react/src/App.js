@@ -47,58 +47,48 @@ function highlightSources(answer, chunks) {
   let safe = answer;
   safe = convertMarkdownBold(safe);
 
-  // Security: Escape HTML
+  // Security: Escape HTML but allow mark tags
   safe = safe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
              .replace(/&lt;(\/?(mark|strong))&gt;/g, "<$1>");
 
   if (!chunks || chunks.length === 0) return safe.replace(/\n/g, "<br/>");
 
-  // Improved normalization to remove PPTX artifacts
   const normalize = (text) => 
-    text.toLowerCase()
-        .replace(/[*_`#‹›]/g, "") // Added PPTX bracket symbols to removal
-        .replace(/\s+/g, " ")
-        .trim();
+    text.toLowerCase().replace(/[*_`#‹›]/g, "").replace(/\s+/g, " ").trim();
 
   let sourceSentences = [];
   chunks.forEach(chunk => {
     if (chunk) {
-      // Split by common delimiters but keep meaningful fragments
-      const lines = chunk.split(/[.!?\n]\s*/);
-      sourceSentences.push(...lines);
+      // Split PPTX chunks into smaller technical fragments (on dashes, colons, or newlines)
+      const fragments = chunk.split(/[.!?\n\-:]+/);
+      sourceSentences.push(...fragments);
     }
   });
 
+  // Filter for unique technical phrases with at least 3 words
   const uniqueGrounded = [...new Set(sourceSentences)]
-    .map(s => normalize(s))
-    .filter(s => s.length > 25) // Lowered to 25 to catch fragmented PPTX lines
+    .map(s => s.trim())
+    .filter(s => s.split(" ").length >= 3) 
     .sort((a, b) => b.length - a.length);
 
   uniqueGrounded.forEach(sourceText => {
     const cleanSource = normalize(sourceText);
-  
-    // We split the document chunks into smaller technical phrases (5+ words)
-    // This ensures that even if the AI rephrases the sentence, the core facts turn blue.
-    const anchorPhrases = cleanSource.split(/[-;:]/).filter(p => p.trim().split(" ").length >= 4);
+    if (cleanSource.length < 12) return;
 
-    anchorPhrases.forEach(phrase => {
-      const trimmedPhrase = phrase.trim();
-      if (trimmedPhrase.length < 15) return; // Skip very short fragments
+    // Create a fuzzy regex that allows the technical fragment to match rephrased text
+    const escaped = cleanSource.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
 
-      // Create a flexible regex that allows for minor character differences
-      const escaped = trimmedPhrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
-    
-      try {
-        const regex = new RegExp(`(${escaped})`, "gi");
-        const style = `background-color: rgba(37, 99, 235, 0.18); border-bottom: 2px solid #3b82f6;`;
+    try {
+      const regex = new RegExp(`(${escaped})`, "gi");
+      const style = `background-color: rgba(37, 99, 235, 0.15); border-bottom: 2px solid #3b82f6;`;
       
-        // Check if the technical anchor exists in the current answer
-        if (normalize(safe).includes(trimmedPhrase) && !safe.includes(style)) {
-            safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
-        }
-      } catch (e) {}
-    });
+      // If the technical fragment is in the answer, highlight it blue
+      if (normalize(safe).includes(cleanSource) && !safe.includes(style)) {
+          safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
+      }
+    } catch (e) {}
   });
+
   return safe.replace(/\n/g, "<br/>");
 }
   
