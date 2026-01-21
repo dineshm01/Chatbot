@@ -113,8 +113,7 @@ def generate_answer(question, mode, memory=None, strict=False, user_id=None):
         "confidence": compute_confidence(filtered_docs),
         "coverage": coverage,
         "sources": [{"source": d.metadata.get("source"), "page": d.metadata.get("page")} for d in filtered_docs[:3]],
-        "chunks": [d.page_content for d in filtered_docs],
+        # This cleans the fragments so the frontend matching logic is successful
+        "chunks": [d.page_content.replace("‹#›", "").strip() for d in filtered_docs], 
         "debug": {"retrieved_docs": len(filtered_docs)}
-    }    
-
-
+    }
