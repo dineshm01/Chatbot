@@ -77,24 +77,28 @@ function highlightSources(answer, chunks) {
   uniqueGrounded.forEach(sourceText => {
     const cleanSource = normalize(sourceText);
   
-    // We break the document chunk into smaller anchor phrases (5-8 words)
-    // to ensure that even if the AI rephrases the sentence, the core fact is highlighted.
-    const anchorPhrases = cleanSource.split(/[,;]/).filter(p => p.trim().length > 20);
+    // We split the document chunks into smaller technical phrases (5+ words)
+    // This ensures that even if the AI rephrases the sentence, the core facts turn blue.
+    const anchorPhrases = cleanSource.split(/[-;:]/).filter(p => p.trim().split(" ").length >= 4);
 
     anchorPhrases.forEach(phrase => {
-      const escaped = phrase.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+      const trimmedPhrase = phrase.trim();
+      if (trimmedPhrase.length < 15) return; // Skip very short fragments
+
+      // Create a flexible regex that allows for minor character differences
+      const escaped = trimmedPhrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+    
       try {
         const regex = new RegExp(`(${escaped})`, "gi");
-        const style = `background-color: rgba(37, 99, 235, 0.15); border-bottom: 2px solid #3b82f6;`;
+        const style = `background-color: rgba(37, 99, 235, 0.18); border-bottom: 2px solid #3b82f6;`;
       
-        // If the anchor phrase exists in the answer, highlight it
-        if (normalize(safe).includes(phrase.trim()) && !safe.includes(style)) {
+        // Check if the technical anchor exists in the current answer
+        if (normalize(safe).includes(trimmedPhrase) && !safe.includes(style)) {
             safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
         }
       } catch (e) {}
     });
   });
-
   return safe.replace(/\n/g, "<br/>");
 }
   
