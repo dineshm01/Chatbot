@@ -21,8 +21,15 @@ def extract_questions(text):
 def ingest_document(filepath, user_id): 
     docs = load_file(filepath)
     
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1500, chunk_overlap=200)
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=250, 
+        chunk_overlap=0,
+        separators=["\n\n", "\n", ". ", "! ", "? "]
+    )
     chunks = text_splitter.split_documents(docs)
+
+    for chunk in chunks:
+        chunk.page_content = " ".join(chunk.page_content.split())
 
     # Update or Insert user metadata with a timestamp
     db["user_metadata"].update_one(
@@ -44,5 +51,6 @@ def ingest_document(filepath, user_id):
     embeddings = get_embeddings()
     vectorstore = FAISS.from_documents(chunks, embeddings)
     vectorstore.save_local(VECTOR_DIR)
+
 
 
