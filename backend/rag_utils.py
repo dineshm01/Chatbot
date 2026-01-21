@@ -54,13 +54,18 @@ def compute_confidence(docs):
 
 
 def compute_coverage(docs, answer=None, threshold=85):
+    """
+    Measures groundedness by checking what percentage of the LLM's answer 
+    exists word-for-word in the retrieved document chunks.
+    """
     if not docs or not answer:
         return {"grounded": 0, "general": 100}
 
-    # Normalize document text
-    doc_text = " ".join(d.page_content.split()).lower()
+    # 1. Prepare document text (the Source of Truth)
+    # FIX: Correctly iterate through 'docs' to build the source text
+    doc_text = " ".join([doc.page_content for doc in docs]).lower()
     
-    # Split and normalize answer sentences
+    # 2. Split the LLM answer into meaningful sentences
     sentences = [s.strip() for s in re.split(r'[.!?]', answer) if len(s.strip()) > 30]
 
     if not sentences:
@@ -68,9 +73,20 @@ def compute_coverage(docs, answer=None, threshold=85):
 
     grounded_count = 0
     for s in sentences:
-        if s.lower() in doc_text:
+        clean_s = s.lower()
+        
+        # 3. Perform a high-threshold fuzzy match
+        score = fuzz.partial_ratio(clean_s, doc_text)
+        
+        if score >= threshold:
             grounded_count += 1
 
+    # 4. Calculate final percentages
     grounded_pct = int((grounded_count / len(sentences)) * 100)
-    return {"grounded": grounded_pct, "general": 100 - grounded_pct}
+    general_pct = 100 - grounded_pct
+
+    return {
+        "grounded": grounded_pct,
+        "general": general_pct
+    }
 
