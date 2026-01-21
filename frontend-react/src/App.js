@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import Login from "./Login";
 
 function App() {
+  const [showDebug, setShowDebug] = useState(false);
   const [strictMode, setStrictMode] = useState(false);
   const [question, setQuestion] = useState("");
   const [mode, setMode] = useState("Detailed");
@@ -417,6 +418,21 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
         >
           Clear
         </button>
+
+        <button 
+          onClick={() => setShowDebug(!showDebug)}
+          style={{
+            marginLeft: "10px",
+            padding: "10px 20px",
+            background: showDebug ? "#ef4444" : "#10b981",
+            color: "white",
+            border: "none",
+            borderRadius: "6px",
+            cursor: "pointer"
+          }}
+        >
+          {showDebug ? "Hide Debug" : "Show Debug"}
+        </button>
             
         <label style={{
             padding: "10px 20px",
@@ -522,6 +538,27 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
             >
               {m.role === "bot" ? (
                 <div dangerouslySetInnerHTML={{ __html: m.text }} />
+                {m.role === "bot" && showDebug && m.raw_retrieval && (
+                  <div style={{
+                    marginTop: "12px", 
+                    padding: "10px", 
+                    background: "#f9fafb", 
+                    border: "1px dashed #d1d5db", 
+                    borderRadius: "8px",
+                    fontSize: "11px",
+                    fontFamily: "monospace",
+                    color: "#374151"
+                  }}>
+                    <strong>🔍 Raw Document Chunks (Normalized):</strong>
+                    <ul style={{ paddingLeft: "15px", marginTop: "5px" }}>
+                      {m.raw_retrieval.map((chunk, idx) => (
+                        <li key={idx} style={{ marginBottom: "4px" }}>
+                          {chunk}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               ) : (m.text
               )}
               {m.role === "bot" && (
