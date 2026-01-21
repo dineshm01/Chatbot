@@ -47,38 +47,41 @@ function highlightSources(answer, chunks) {
   let safe = answer;
   if (!chunks || chunks.length === 0) return safe.replace(/\n/g, "<br/>");
 
+  // Remove artifacts like ‹#› and parentheses that block matches
   const normalize = (text) => 
-    text.toLowerCase().replace(/[*_`#‹›]/g, "").replace(/\s+/g, " ").trim();
+    text.toLowerCase().replace(/[*_`#‹›()]/g, "").replace(/\s+/g, " ").trim();
 
-  // 1. Extract technical "Noun Phrases" from your PPTX chunks
-  let technicalTerms = [];
+  let fragments = [];
   chunks.forEach(chunk => {
     if (chunk) {
-      // Split on punctuation AND common filler words to find the "meat" of the technical fact
-      const terms = chunk.split(/[.!?\n\-:,;]|\b(?:is|are|was|were|the|an|a|to|for|with|from)\b/gi);
-      technicalTerms.push(...terms);
+      // Split on common PPTX delimiters: dashes, colons, and bullets
+      const parts = chunk.split(/[.!?\n\-:]+/);
+      fragments.push(...parts);
     }
   });
 
-  // 2. Filter for specific technical labels found in your slides
-  const uniqueGrounded = [...new Set(technicalTerms)]
+  // Extract core technical terms (3+ words)
+  const uniqueGrounded = [...new Set(fragments)]
     .map(s => s.trim())
-    .filter(s => s.length > 8) // Long enough to be a technical term, not a random word
+    .filter(s => s.split(" ").length >= 2 && s.length > 8)
     .sort((a, b) => b.length - a.length);
 
   uniqueGrounded.forEach(sourceText => {
     const cleanSource = normalize(sourceText);
-    
-    // 3. Create a flexible regex for the technical term
-    const escaped = cleanSource.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+    if (cleanSource.length < 10) return;
+
+    // Create a flexible regex that allows the AI to insert small words in between
+    const escaped = cleanSource.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, ".*?");
 
     try {
-      const regex = new RegExp(`\\b(${escaped})\\b`, "gi");
-      const style = `background-color: rgba(37, 99, 235, 0.18); border-bottom: 2px solid #3b82f6; color: inherit;`;
+      const regex = new RegExp(`(${escaped})`, "gi");
+      const style = `background-color: rgba(37, 99, 235, 0.22); border-bottom: 2px solid #3b82f6; color: inherit;`;
       
-      // If the answer contains this specific technical term, highlight it blue
-      if (normalize(safe).includes(cleanSource) && !safe.includes(style)) {
-          safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
+      // If the normalized answer contains the flexible pattern, apply blue highlight
+      if (new RegExp(escaped, "i").test(normalize(safe))) {
+          if (!safe.includes(style)) {
+            safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
+          }
       }
     } catch (e) {}
   });
@@ -245,7 +248,6 @@ async function deleteAllHistory() {
 
 async function ask() {
   if (!question.trim() || loading) return;
-
   setLoading(true);
 
   const userMessage = { role: "user", text: question };
@@ -253,61 +255,37 @@ async function ask() {
   setQuestion("");
 
   try {
-    const memory = messages.slice(-6);
-
     const res = await fetch(`${API}/api/ask`, {
       method: "POST",
       headers: authHeaders(),
-      body: JSON.stringify({ question, mode, memory, strict: strictMode })
+      body: JSON.stringify({ question, mode, memory: messages.slice(-6), strict: strictMode })
     });
 
-    let data;
-    try {
-      data = await res.json();
-    } catch {
-      throw new Error("Invalid server response");
-    }
-    if (!res.ok) {
-      throw new Error(data.error || "Server error");
-    }
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Server error");
 
-    console.log("Received chunks:", data.chunks);
     const botMessage = {
       id: data.id,
       role: "bot",
-      text: highlightSources(data.text, data.chunks),
+      // GUARANTEE: We pass data.chunks directly here
+      text: highlightSources(data.text, data.chunks), 
       confidence: data.confidence,
       coverage: data.coverage,
       sources: data.sources,
-      chunks: data.chunks,
-      raw_retrieval: data.raw_retrieval,
+      chunks: data.chunks, // Store for re-rendering
+      raw_retrieval: data.raw_retrieval, 
       feedback: null,
       bookmarked: false      
     };
 
     setMessages(prev => [...prev, botMessage]);
   } catch (err) {
-      console.error(err);
-      if (
-        err.message?.includes("401") ||
-        err.message?.toLowerCase().includes("unauthorized") ||
-        err.message?.toLowerCase().includes("invalid token")
-      ) {
-        localStorage.removeItem("token");
-        alert("Session expired. Please login again.");
-        window.location.reload();
-        return;
-      }
-      setMessages(prev => [
-        ...prev,
-        { role: "bot", text: `⚠️ ${err.message || "Error contacting server."}` }
-      ]);
-  }
- finally {
+    setMessages(prev => [...prev, { role: "bot", text: `⚠️ ${err.message}` }]);
+  } finally {
     setLoading(false);
   }
 }
-
+  
 function handleKeyDown(e) {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
