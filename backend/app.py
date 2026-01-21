@@ -193,6 +193,7 @@ def ask():
         "coverage": result.get("coverage", 0),
         "sources": result.get("sources", []),
         "chunks": result.get("chunks", []),
+        "raw_retrieval": [d.page_content for d in filtered_docs],
         "feedback": None,
         "bookmarked": False,
         "created_at": datetime.now(timezone.utc)
@@ -500,6 +501,7 @@ def debug_raw_docs():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
