@@ -279,6 +279,7 @@ async function ask() {
       confidence: data.confidence,
       coverage: data.coverage,
       sources: data.sources,
+      chunks: data.chunks,
       raw_retrieval: data.raw_retrieval,
       feedback: null,
       bookmarked: false      
