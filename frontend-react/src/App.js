@@ -46,52 +46,46 @@ function highlightSources(answer, chunks) {
   let safe = answer;
   safe = convertMarkdownBold(safe);
 
-  // 1. Security: Escape HTML characters
-  safe = safe
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/&lt;(\/?(mark|strong))&gt;/g, "<$1>");
+  // 1. Security: Escape HTML
+  safe = safe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+             .replace(/&lt;(\/?(mark|strong))&gt;/g, "<$1>");
 
-  if (!chunks || chunks.length === 0) {
-    return safe.replace(/\n/g, "<br/>");
-  }
+  if (!chunks || chunks.length === 0) return safe.replace(/\n/g, "<br/>");
 
-  // 2. Extract and Unique-ify source sentences from document chunks
+  // 2. Helper to normalize text for strict comparison
+  const normalize = (text) => 
+    text.toLowerCase()
+        .replace(/[*_`#]/g, "") // Remove Markdown
+        .replace(/\s+/g, " ")   // Standardize spaces
+        .trim();
+
+  // 3. Extract and unique-ify source sentences
   let sourceSentences = [];
   chunks.forEach(chunk => {
     if (chunk) {
-      // Split chunks into sentences to find precise matches
       const lines = chunk.split(/[.!?]\s+/);
       sourceSentences.push(...lines);
     }
   });
 
-  // 3. Filter for unique grounded sentences (The "uniqueGrounded" logic)
-  // We filter for length > 60 to ignore common technical filler words.
   const uniqueGrounded = [...new Set(sourceSentences)]
-    .map(s => s.replace(/[*_`#]/g, "").trim())
-    .filter(s => s.length > 60) 
+    .map(s => normalize(s))
+    .filter(s => s.length > 30) // Catch shorter technical facts
     .sort((a, b) => b.length - a.length);
 
-  // 4. Apply highlighting only to exact matches
+  // 4. Highlight only exact normalized matches
   uniqueGrounded.forEach(sourceText => {
-    const escaped = sourceText
-      .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-      .replace(/\s+/g, "\\s+");
+    const escaped = sourceText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
 
     try {
       const regex = new RegExp(`(${escaped})`, "gi");
+      const style = `background-color: rgba(37, 99, 235, 0.08); border-bottom: 2px solid #3b82f6;`;
       
-      const highlightStyle = `background-color: rgba(37, 99, 235, 0.08); border-bottom: 2px solid #3b82f6; padding: 1px 0;`;
-      
-      // Only highlight if the text exists in the bot answer and hasn't been marked yet
-      if (regex.test(safe) && !safe.includes(sourceText)) {
-          safe = safe.replace(regex, `<mark style="${highlightStyle}">$1</mark>`);
+      if (regex.test(normalize(safe)) && !safe.includes(style)) {
+          // Apply to the original safe string to keep formatting
+          safe = safe.replace(new RegExp(`(${escaped})`, "gi"), `<mark style="${style}">$1</mark>`);
       }
-    } catch (e) {
-      // Skip invalid regex entries
-    }
+    } catch (e) {}
   });
 
   return safe.replace(/\n/g, "<br/>");
