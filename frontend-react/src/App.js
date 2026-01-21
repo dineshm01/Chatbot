@@ -46,20 +46,16 @@ function highlightSources(answer, chunks) {
   let safe = answer;
   safe = convertMarkdownBold(safe);
 
-  // 1. Security: Escape HTML
+  // Security: Escape HTML
   safe = safe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
              .replace(/&lt;(\/?(mark|strong))&gt;/g, "<$1>");
 
   if (!chunks || chunks.length === 0) return safe.replace(/\n/g, "<br/>");
 
-  // 2. Helper to normalize text for strict comparison
   const normalize = (text) => 
-    text.toLowerCase()
-        .replace(/[*_`#]/g, "") // Remove Markdown
-        .replace(/\s+/g, " ")   // Standardize spaces
-        .trim();
+    text.toLowerCase().replace(/[*_`#]/g, "").replace(/\s+/g, " ").trim();
 
-  // 3. Extract and unique-ify source sentences
+  // Extract sentences from chunks
   let sourceSentences = [];
   chunks.forEach(chunk => {
     if (chunk) {
@@ -68,22 +64,24 @@ function highlightSources(answer, chunks) {
     }
   });
 
+  // Filter for unique technical facts over 30 chars
   const uniqueGrounded = [...new Set(sourceSentences)]
-    .map(s => normalize(s))
-    .filter(s => s.length > 30) // Catch shorter technical facts
+    .map(s => s.trim())
+    .filter(s => s.length > 30)
     .sort((a, b) => b.length - a.length);
 
-  // 4. Highlight only exact normalized matches
   uniqueGrounded.forEach(sourceText => {
-    const escaped = sourceText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+    const cleanSource = sourceText.replace(/[*_`#]/g, "").trim();
+    // Escape for Regex
+    const escaped = cleanSource.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
 
     try {
       const regex = new RegExp(`(${escaped})`, "gi");
       const style = `background-color: rgba(37, 99, 235, 0.08); border-bottom: 2px solid #3b82f6;`;
       
-      if (regex.test(normalize(safe)) && !safe.includes(style)) {
-          // Apply to the original safe string to keep formatting
-          safe = safe.replace(new RegExp(`(${escaped})`, "gi"), `<mark style="${style}">$1</mark>`);
+      // Match against normalized version but apply to original safe string
+      if (normalize(safe).includes(normalize(cleanSource)) && !safe.includes(style)) {
+          safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
       }
     } catch (e) {}
   });
