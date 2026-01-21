@@ -52,28 +52,39 @@ def compute_confidence(docs):
 
 
 def compute_coverage(docs, answer=None, threshold=80):
+    """
+    Calculates groundedness based on technical fragments to match frontend highlights.
+   
+    """
     if not docs or not answer:
         return {"grounded": 0, "general": 100}
 
-    # Clean document text to create a standardized search space
+    # 1. Standardize the document Source of Truth
     doc_text = " ".join([" ".join(d.page_content.split()) for d in docs]).lower()
-    doc_text = doc_text.replace("*", "").replace("#", "")
-    
-    # Split LLM answer into sentences longer than 30 chars
-    sentences = [s.strip() for s in re.split(r'[.!?]', answer) if len(s.strip()) > 30]
+    doc_text = doc_text.replace("*", "").replace("#", "").replace("‹#›", "")
 
-    if not sentences:
+    # 2. Extract technical fragments from the AI's answer
+    # We split by punctuation and common filler words just like the frontend
+    sentences = re.split(r'[.!?\n\-:,;]|\b(?:is|are|was|were|the|an|a|to|for|with|from)\b', answer, flags=re.IGNORECASE)
+    
+    # Filter for meaningful technical blocks (2+ words and 8+ chars)
+    fragments = [s.strip() for s in sentences if len(s.strip()) > 8 and len(s.strip().split()) >= 2]
+
+    if not fragments:
         return {"grounded": 0, "general": 100}
 
     grounded_count = 0
-    for s in sentences:
-        # Standardize the sentence for comparison
-        clean_s = " ".join(s.lower().split()).replace("*", "").replace("#", "")
+    for frag in fragments:
+        clean_frag = " ".join(frag.lower().split())
         
-        # Check for direct inclusion or high fuzzy similarity
-        if clean_s in doc_text or fuzz.partial_ratio(clean_s, doc_text) >= threshold:
+        # 3. Apply the same matching logic used for highlights
+        if clean_frag in doc_text or fuzz.partial_ratio(clean_frag, doc_text) >= threshold:
             grounded_count += 1
 
-    grounded_pct = int((grounded_count / len(sentences)) * 100)
+    # Calculate final percentage
+    grounded_pct = int((grounded_count / len(fragments)) * 100)
+    
+    # Safety clamp
+    grounded_pct = min(100, max(0, grounded_pct))
+    
     return {"grounded": grounded_pct, "general": 100 - grounded_pct}
-
