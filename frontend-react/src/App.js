@@ -498,6 +498,8 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
           Logout
         </button>
 
+/* eslint-disable no-unused-vars */
+
         <div style={{ marginTop: "24px" }}>
           {messages.map((m, i) => (
           <div
@@ -519,32 +521,34 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
             >
               {m.role === "bot" ? (
                 <>
-                <div dangerouslySetInnerHTML={{ __html: m.text }} />
+                  <div dangerouslySetInnerHTML={{ __html: m.text }} />
 
-                {showDebug && m.raw_retrieval && (
-                  <div style={{
-                    marginTop: "12px", 
-                    padding: "10px", 
-                    background: "#f9fafb", 
-                    border: "1px dashed #d1d5db", 
-                    borderRadius: "8px",
-                    fontSize: "11px",
-                    fontFamily: "monospace",
-                    color: "#374151"
-                  }}>
-                    <strong>🔍 Raw Document Chunks (Normalized):</strong>
-                    <ul style={{ paddingLeft: "15px", marginTop: "5px" }}>
-                      {m.raw_retrieval.map((chunk, idx) => (
-                        <li key={idx} style={{ marginBottom: "4px" }}>
-                          {chunk}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                  {showDebug && m.raw_retrieval && (
+                    <div style={{
+                      marginTop: "12px", 
+                      padding: "10px", 
+                      background: "#f9fafb", 
+                      border: "1px dashed #d1d5db", 
+                      borderRadius: "8px",
+                      fontSize: "11px",
+                      fontFamily: "monospace",
+                      color: "#374151"
+                    }}>
+                      <strong>🔍 Raw Document Chunks (Normalized):</strong>
+                      <ul style={{ paddingLeft: "15px", marginTop: "5px" }}>
+                        {m.raw_retrieval.map((chunk, idx) => (
+                          <li key={idx} style={{ marginBottom: "4px" }}>
+                            {chunk}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </>
-              ) : (m.text
+              ) : (
+                m.text
               )}
+
               {m.role === "bot" && (
                 <div style={{ fontSize: "12px", marginTop: "4px", opacity: 0.6 }}>
                   {m.confidence === "Strict mode" && (
@@ -553,39 +557,42 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
                     </div>
                   )}
 
-                {m.feedback && (
-                  <div style={{
-                    marginTop: "4px",
-                    fontSize: "12px",
-                    color: m.feedback === "up" ? "green" : "red",
-                    fontWeight: "bold"
-                  }}>
-                    {m.feedback === "up" ? "✔ Marked helpful" : "✖ Marked wrong"}
+                  {m.feedback && (
+                    <div style={{
+                      marginTop: "4px",
+                      fontSize: "12px",
+                      color: m.feedback === "up" ? "green" : "red",
+                      fontWeight: "bold"
+                    }}>
+                      {m.feedback === "up" ? "✔ Marked helpful" : "✖ Marked wrong"}
+                    </div>
+                  )}
+                  
+                  <div>
+                    {m.confidence} |{" "}
+                    {m.coverage && typeof m.coverage === "object"
+                      ? `🧠 Grounded: ${m.coverage.grounded ?? 0}% | General: ${m.coverage.general ?? 0}%`
+                      : m.coverage !== undefined
+                      ? `Coverage: ${m.coverage}%`
+                      : "Coverage: N/A"}
                   </div>
-                )}
-                <div>
-                  {m.confidence} |{" "}
-                  {m.coverage && typeof m.coverage === "object"
-                    ? `🧠 Grounded: ${m.coverage.grounded ?? 0}% | General: ${m.coverage.general ?? 0}%`
-                    : m.coverage !== undefined
-                    ? `Coverage: ${m.coverage}%`
-                    : "Coverage: N/A"}
+                  
+                  <div style={{ marginTop: "4px" }}>
+                    <button onClick={() => toggleBookmark(m.id, !m.bookmarked)}>
+                      {m.bookmarked ? "⭐ Bookmarked" : "☆ Bookmark"}
+                    </button>
+                    <button onClick={() => sendFeedback(m.id, "up")} style={{ marginLeft: "4px" }}>👍</button>
+                    <button onClick={() => sendFeedback(m.id, "down")} style={{ marginLeft: "6px" }}>👎</button>
+                  </div>
                 </div>
-                <div style={{ marginTop: "4px" }}>
-                  <button onClick={() => toggleBookmark(m.id, !m.bookmarked)}>
-                    {m.bookmarked ? "⭐ Bookmarked" : "☆ Bookmark"}
-                  </button>
-                  <button onClick={() => sendFeedback(m.id, "up")}>👍</button>
-                  <button onClick={() => sendFeedback(m.id, "down")} style={{ marginLeft: "6px" }}>👎</button>
-                </div>
-              </div>
-            )}
+              )}
+
               {m.sources && m.sources.length > 0 && (
                 <div style={{ marginTop: "6px", fontSize: "12px" }}>
                   <b>Sources:</b>
                   <ul>
-                    {m.sources.map((s, i) => (
-                      <li key={i}>
+                    {m.sources.map((s, idxS) => (
+                      <li key={idxS}>
                         {s.source} (page {s.page})
                       </li>
                     ))}
@@ -594,23 +601,25 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
               )}
             </div>
           </div>
-        ))}
-        {loading && (
-          <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: "10px" }}>
-            <div style={{
-              padding: "10px 14px",
-              borderRadius: "12px",
-              background: "#e5e7eb",
-              color: "black",
-              fontStyle: "italic"
-            }}>
-              Bot is typing...
+          ))}
+
+          {loading && (
+            <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: "10px" }}>
+              <div style={{
+                padding: "10px 14px",
+                borderRadius: "12px",
+                background: "#e5e7eb",
+                color: "black",
+                fontStyle: "italic"
+              }}>
+                Bot is typing...
+              </div>
             </div>
-          </div>
-        )}
-        <div ref={chatEndRef} />
+          )}
+          <div ref={chatEndRef} />
+        </div>
       </div>
-      </div>
+      
       {showHistoryPanel && (
         <div style={{
           position: "fixed",
@@ -635,7 +644,6 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
                 loadHistoryPanel();
                 return;
               }
-
               const res = await fetch(`${API}/api/history/search?q=${encodeURIComponent(q)}`, {
                 headers: authHeaders()
               });
@@ -673,7 +681,7 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
             </button>
           </div>
 
-          {historyItems.map((item, i) => (
+          {historyItems.map((item) => (
             <div
               key={item._id}
               style={{
@@ -713,6 +721,7 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
           ))}
         </div>
       )}
+
       {showAnalytics && analytics && (
         <div style={{
           position: "fixed",
