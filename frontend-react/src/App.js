@@ -405,6 +405,23 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
         >
           {loading ? "Thinking..." : "Ask"}
         </button>
+
+        <button 
+          onClick={() => setShowDebug(!showDebug)} 
+          style={{
+            marginLeft: "10px",
+            padding: "10px 20px", 
+            background: showDebug ? "#ef4444" : "#10b981", 
+            color: "white", 
+            borderRadius: "6px", 
+            border: "none", 
+            cursor: "pointer", 
+            fontWeight: "bold"
+          }}
+        >
+          {showDebug ? "Hide Debug Info" : "Show Debug Info"}
+        </button>
+          
         <button
           onClick={clearChat}
           style={{
@@ -418,23 +435,6 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
           }}
         >
           Clear
-        </button>
-
-        <button 
-          onClick={() => setShowDebug(!showDebug)}
-          style={{
-            marginLeft: "10px",
-            padding: "10px 20px",
-            background: showDebug ? "#ef4444" : "#10b981", // Changes color when active
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            cursor: "pointer",
-            display: "inline-block", // Forces visibility
-            fontWeight: "bold"
-          }}
-        >
-          {showDebug ? "Hide Debug" : "Show Debug"}
         </button>
             
         <label style={{
@@ -540,6 +540,7 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
               }}
             >
               {m.role === "bot" ? (
+                <>
                 <div dangerouslySetInnerHTML={{ __html: m.text }} />
 
                 {showDebug && m.raw_retrieval && (
@@ -563,6 +564,7 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
                     </ul>
                   </div>
                 )}
+                </>
               ) : (m.text
               )}
               {m.role === "bot" && (
