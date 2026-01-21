@@ -27,28 +27,24 @@ def docs_are_relevant(question, docs, threshold=30):
 
     return score >= threshold
 
-
-def extract_grounded_spans(answer, docs, threshold=0.2):
+def extract_grounded_spans(answer, docs, threshold=0.8):
     grounded = []
-    debug = []
+    
+    # Standardize document text for comparison
+    doc_text = " ".join([" ".join(d.page_content.split()) for d in docs]).lower()
+    doc_text = doc_text.replace("*", "").replace("#", "")
 
-    doc_text = " ".join(d.page_content.lower() for d in docs)
-    doc_tokens = set(re.findall(r"\w+", doc_text))
-
-    sentences = [s.strip() for s in re.split(r"[.!?]", answer) if len(s.strip()) > 40]
+    # Split answer into sentences matching the frontend threshold
+    sentences = [s.strip() for s in re.split(r'[.!?]', answer) if len(s.strip()) > 30]
 
     for s in sentences:
-        sent_tokens = set(re.findall(r"\w+", s.lower()))
-        if not sent_tokens:
-            continue
-
-        overlap = len(sent_tokens & doc_tokens) / len(sent_tokens)
-        debug.append({"sentence": s[:120], "overlap": round(overlap, 2)})
-
-        if overlap >= threshold:
+        clean_s = " ".join(s.lower().split()).replace("*", "").replace("#", "")
+        
+        # Check if the cleaned sentence is grounded in the cleaned doc_text
+        if clean_s in doc_text or fuzz.partial_ratio(clean_s, doc_text) >= (threshold * 100):
             grounded.append(s)
 
-    return grounded, debug
+    return grounded, [] # Returning empty debug list to keep it clean
     
 def generate_answer(question, mode, memory=None, strict=False, user_id=None): 
     m = re.search(r"(\d+)(st|nd|rd|th)?\s+question", question.lower())
@@ -188,6 +184,7 @@ def generate_answer(question, mode, memory=None, strict=False, user_id=None):
         }
     }
     
+
 
 
 
