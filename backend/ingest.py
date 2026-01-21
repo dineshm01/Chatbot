@@ -29,7 +29,9 @@ def ingest_document(filepath, user_id):
     chunks = text_splitter.split_documents(docs)
 
     for chunk in chunks:
-        chunk.page_content = " ".join(chunk.page_content.split())
+        # Deep Normalization: standardizing whitespace and removing symbols
+        content = " ".join(chunk.page_content.split())
+        chunk.page_content = content.replace("*", "").replace("#", "")
 
     # Update or Insert user metadata with a timestamp
     db["user_metadata"].update_one(
@@ -51,6 +53,7 @@ def ingest_document(filepath, user_id):
     embeddings = get_embeddings()
     vectorstore = FAISS.from_documents(chunks, embeddings)
     vectorstore.save_local(VECTOR_DIR)
+
 
 
 
