@@ -45,55 +45,28 @@ function convertMarkdownBold(text) {
 function highlightSources(answer, chunks) {
   let safe = answer;
   safe = convertMarkdownBold(safe);
+  // ... escape HTML logic
 
-  // 1. Security & Formatting
-  safe = safe
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/&lt;(\/?(mark|strong))&gt;/g, "<$1>");
+  if (!chunks || chunks.length === 0) return safe.replace(/\n/g, "<br/>");
 
-  if (!chunks || chunks.length === 0) {
-    return safe.replace(/\n/g, "<br/>");
-  }
-
-  // 2. Extract and Unique-ify source sentences
-  let sourceSentences = [];
-  chunks.forEach(chunk => {
-    if (chunk) {
-      // Split by punctuation followed by a space
-      const lines = chunk.split(/[.!?]\s+/);
-      sourceSentences.push(...lines);
-    }
-  });
-
-  // 3. Filter for quality (ignore short filler text)
-  // We only care about sentences over 60 chars for high-precision grounding.
-  const uniqueGrounded = [...new Set(sourceSentences)]
-    .map(s => s.replace(/[*_`#]/g, "").trim())
-    .filter(s => s.length > 60)
+  // Sort chunks by length (longest first) to prevent partial matching bugs
+  const sortedChunks = [...new Set(chunks)]
+    .filter(c => c && c.length > 30)
     .sort((a, b) => b.length - a.length);
 
-  // 4. Highlight with Single-Pass Guard
-  uniqueGrounded.forEach(sourceText => {
-    // Escape for Regex
-    const escaped = sourceText
-      .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-      .replace(/\s+/g, "\\s+");
+  sortedChunks.forEach(chunk => {
+    const cleanChunk = chunk.replace(/[*_`#]/g, "").trim();
+    const escaped = cleanChunk.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
 
     try {
       const regex = new RegExp(`(${escaped})`, "gi");
+      const style = `background-color: rgba(37, 99, 235, 0.08); border-bottom: 2px solid #3b82f6;`;
       
-      // Styling: Professional light blue with a subtle border
-      const highlightStyle = `background-color: rgba(37, 99, 235, 0.1); border-bottom: 2px solid #3b82f6; padding: 1px 0; border-radius: 2px;`;
-      
-      // CRITICAL FIX: Only highlight if the sentence is present AND not already highlighted
-      if (regex.test(safe) && !safe.includes(sourceText)) {
-          safe = safe.replace(regex, `<mark style="${highlightStyle}">$1</mark>`);
+      // Only highlight if the text exists and hasn't been marked yet
+      if (regex.test(safe) && !safe.includes(style)) {
+          safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
       }
-    } catch (e) {
-      console.error("Highlighting skipped for specific sentence:", e);
-    }
+    } catch (e) {}
   });
 
   return safe.replace(/\n/g, "<br/>");
