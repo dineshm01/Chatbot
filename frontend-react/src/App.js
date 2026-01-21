@@ -424,11 +424,13 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
           style={{
             marginLeft: "10px",
             padding: "10px 20px",
-            background: showDebug ? "#ef4444" : "#10b981",
+            background: showDebug ? "#ef4444" : "#10b981", // Changes color when active
             color: "white",
             border: "none",
             borderRadius: "6px",
-            cursor: "pointer"
+            cursor: "pointer",
+            display: "inline-block", // Forces visibility
+            fontWeight: "bold"
           }}
         >
           {showDebug ? "Hide Debug" : "Show Debug"}
