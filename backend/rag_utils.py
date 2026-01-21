@@ -1,4 +1,5 @@
 import os
+import re
 from langchain_community.vectorstores import FAISS
 from utils.embeddings import get_embeddings
 from rapidfuzz import fuzz
@@ -89,3 +90,4 @@ def compute_coverage(docs, answer=None, threshold=85):
         "grounded": grounded_pct,
         "general": general_pct
     }
+
