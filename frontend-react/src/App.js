@@ -75,22 +75,24 @@ function highlightSources(answer, chunks) {
     .sort((a, b) => b.length - a.length);
 
   uniqueGrounded.forEach(sourceText => {
-    // Create a fuzzy regex pattern: replaces spaces with a match-anything bridge
-    // This allows "GAN consists of" to match "GAN consists of..." in the answer
-    const fuzzyPattern = sourceText
-      .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-      .replace(/\s+/g, "[\\s\\W_]+"); // Matches spaces, punctuation, or formatting
+    const cleanSource = normalize(sourceText);
+  
+    // We break the document chunk into smaller anchor phrases (5-8 words)
+    // to ensure that even if the AI rephrases the sentence, the core fact is highlighted.
+    const anchorPhrases = cleanSource.split(/[,;]/).filter(p => p.trim().length > 20);
 
-    try {
-      const regex = new RegExp(`(${fuzzyPattern})`, "gi");
-      const style = `background-color: rgba(37, 99, 235, 0.12); border-bottom: 2px solid #3b82f6;`;
+    anchorPhrases.forEach(phrase => {
+      const escaped = phrase.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+      try {
+        const regex = new RegExp(`(${escaped})`, "gi");
+        const style = `background-color: rgba(37, 99, 235, 0.15); border-bottom: 2px solid #3b82f6;`;
       
-      // Apply the highlight if the pattern exists in the answer
-      if (regex.test(normalize(safe)) && !safe.includes(style)) {
-          // We apply it to the actual safe string using the original pattern
-          safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
-      }
-    } catch (e) {}
+        // If the anchor phrase exists in the answer, highlight it
+        if (normalize(safe).includes(phrase.trim()) && !safe.includes(style)) {
+            safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
+        }
+      } catch (e) {}
+    });
   });
 
   return safe.replace(/\n/g, "<br/>");
