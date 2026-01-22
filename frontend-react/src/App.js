@@ -259,7 +259,7 @@ async function ask() {
     const res = await fetch(`${API}/api/ask`, {
       method: "POST",
       headers: authHeaders(),
-      body: JSON.stringify({ question, mode, memory, strict: strictMode })
+      body: JSON.stringify({ question, mode, memory, strict: true }) 
     });
 
     const data = await res.json();
