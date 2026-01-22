@@ -354,14 +354,6 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
           <option>Compare</option>
         </select>
 
-        <label style={{ marginLeft: "10px", fontSize: "14px" }}>
-          <input
-            type="checkbox"
-            checked={strictMode}
-            onChange={() => setStrictMode(!strictMode)}
-          /> Strict mode (only answer from docs)
-        </label>
-
         <br /><br />
 
         <button
