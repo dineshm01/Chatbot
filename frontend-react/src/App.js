@@ -45,10 +45,8 @@ function convertMarkdownBold(text) {
 
 function highlightSources(answer, chunks) {
   let safe = answer;
-  // Fixing the 'unused variable' warning by calling it here
   safe = convertMarkdownBold(safe); 
 
-  // Escape HTML but preserve mark tags for later
   safe = safe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
              .replace(/&lt;(\/?(mark|strong))&gt;/g, "<$1>");
 
@@ -60,7 +58,7 @@ function highlightSources(answer, chunks) {
   let fragments = [];
   chunks.forEach(chunk => {
     if (chunk) {
-      // Split on common PPTX punctuation to find technical facts
+      // Split technical facts more granularly
       const parts = chunk.split(/[.!?\n\-:]+/);
       fragments.push(...parts);
     }
@@ -68,21 +66,21 @@ function highlightSources(answer, chunks) {
 
   const uniqueGrounded = [...new Set(fragments)]
     .map(s => s.trim())
-    .filter(s => s.split(" ").length >= 2 && s.length > 8)
-    .sort((a, b) => b.length - a.length);
+    .filter(s => s.split(" ").length >= 2 && s.length > 6);
 
   uniqueGrounded.forEach(sourceText => {
     const cleanSource = normalize(sourceText);
-    if (cleanSource.length < 10) return;
+    if (cleanSource.length < 8) return;
 
-    // Flexible regex (.*?) matches technical facts even if the AI rephrases them
-    const fuzzyRegex = cleanSource.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, ".*?");
+    // Use a fuzzy regex that allows for minor phrasing differences (wildcards for spaces)
+    const fuzzyRegexPattern = cleanSource.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, ".*?");
 
     try {
-      const regex = new RegExp(`(${fuzzyRegex})`, "gi");
+      const regex = new RegExp(`(${fuzzyRegexPattern})`, "gi");
       const style = `background-color: rgba(37, 99, 235, 0.2); border-bottom: 2px solid #3b82f6;`;
       
-      if (new RegExp(fuzzyRegex, "i").test(normalize(safe))) {
+      // Check normalized text to verify existence before applying highlight
+      if (new RegExp(fuzzyRegexPattern, "i").test(normalize(safe))) {
           if (!safe.includes(style)) {
             safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
           }
