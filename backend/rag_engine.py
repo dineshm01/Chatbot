@@ -113,18 +113,26 @@ def generate_answer(question, mode, memory=None, strict=False, user_id=None):
     
     answer = call_llm(prompt)
 
-    # Calculate grounding based on the same docs sent to LLM
+    # 6. Verify grounding using the same docs sent to LLM
+    # This ensures highlights work even if the filter was loose
     coverage = compute_coverage(final_docs, answer)
 
-    # Inside generate_answer function...
-    cleaned_chunks = [d.page_content.replace("‹#›", "").replace("窶ｹ#窶ｺ", "").strip() for d in filtered_docs]
+    # 7. SYNC FIX: Ensure highlights work by cleaning the EXACT docs used by the LLM
+    # We clean both artifact types (‹#› and the encoding error 窶ｹ#窶ｺ)
+    cleaned_chunks = [
+        d.page_content.replace("‹#›", "").replace("窶ｹ#窶ｺ", "").strip() 
+        for d in final_docs
+    ]
 
     return {
         "text": answer.strip(),
-        "confidence": compute_confidence(filtered_docs),
+        "confidence": compute_confidence(final_docs),
         "coverage": coverage,
-        "sources": [{"source": os.path.basename(d.metadata.get("source", "Doc")), "page": d.metadata.get("page", "?")} for d in filtered_docs[:3]],
+        "sources": [
+            {"source": os.path.basename(d.metadata.get("source", "Doc")), "page": d.metadata.get("page", "?")} 
+            for d in final_docs[:3]
+        ],
         "chunks": cleaned_chunks,
-        "raw_retrieval": cleaned_chunks
+        "raw_retrieval": cleaned_chunks # This is the bridge to the blue highlights
     }
 
