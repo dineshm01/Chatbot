@@ -4,8 +4,8 @@ from langchain_community.vectorstores import FAISS
 from utils.embeddings import get_embeddings
 from rapidfuzz import fuzz
 
+# CRITICAL FIX: This forces the path to match the Railway persistent volume mount
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# This forces the folder to be 'backend/vectorstore' which matches your persistent volume
 VECTOR_DIR = os.path.join(BASE_DIR, "vectorstore")
 
 def load_vectorstore():
@@ -20,7 +20,6 @@ def load_vectorstore():
         get_embeddings(),
         allow_dangerous_deserialization=True
     )
-
 
 def get_retriever():
     vectorstore = load_vectorstore()
@@ -88,3 +87,4 @@ def compute_coverage(docs, answer=None, threshold=80):
     grounded_pct = min(100, max(0, grounded_pct))
     
     return {"grounded": grounded_pct, "general": 100 - grounded_pct}
+
