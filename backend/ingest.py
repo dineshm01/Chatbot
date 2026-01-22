@@ -26,40 +26,22 @@ def extract_questions(text):
 def ingest_document(filepath, user_id): 
     docs = load_file(filepath)
     
-    # 1. Use a specialized splitter for technical slides
+    # LANGCHAIN STEP: Recursive Splitting
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=500, # Increased to keep technical phrases like "Ian Goodfellow" together
-        chunk_overlap=50,
-        separators=["\n\n", "\n", ". ", "‹#›"] # Added artifact as a separator
+        chunk_size=600, # Large enough to keep "Ian Goodfellow (2016)" together
+        chunk_overlap=100,
+        separators=["\n\n", "\n", ". ", "‹#›"]
     )
     chunks = text_splitter.split_documents(docs)
 
     for chunk in chunks:
-        # 2. DEEP NORMALIZATION: Strip all artifacts found in your PPTX
+        # Deep Normalization: Clean artifacts BEFORE embedding
         content = " ".join(chunk.page_content.split())
-        # Remove markdown and PPTX artifacts immediately
-        clean_content = content.replace("*", "").replace("#", "").replace("‹#›", "").replace("窶ｹ#窶ｺ", "")
-        chunk.page_content = clean_content.strip()
+        chunk.page_content = content.replace("‹#›", "").replace("窶ｹ#窶ｺ", "").strip()
 
-    # 3. Update user metadata
-    db["user_metadata"].update_one(
-        {"user_id": user_id},
-        {"$set": {"last_upload": datetime.now(timezone.utc)}},
-        upsert=True
-    )
-
-    if not chunks:
-        raise RuntimeError("No valid text extracted from document")
-
-    # 4. Clear old user data and save new clean index
+    # LANGCHAIN STEP: Vector Storage (FAISS)
     raw_docs.delete_many({"user_id": user_id}) 
     embeddings = get_embeddings()
     vectorstore = FAISS.from_documents(chunks, embeddings)
     vectorstore.save_local(VECTOR_DIR)
-
-
-
-
-
-
-
+    
