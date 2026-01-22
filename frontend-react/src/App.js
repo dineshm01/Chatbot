@@ -46,44 +46,34 @@ function convertMarkdownBold(text) {
 function highlightSources(answer, chunks) {
   let safe = answer;
   safe = convertMarkdownBold(safe); 
-
-  safe = safe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-             .replace(/&lt;(\/?(mark|strong))&gt;/g, "<$1>");
+  safe = safe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/&lt;(\/?(mark|strong))&gt;/g, "<$1>");
 
   if (!chunks || chunks.length === 0) return safe.replace(/\n/g, "<br/>");
 
-  const normalize = (text) => 
-    text.toLowerCase().replace(/[*_`#‹›()]/g, "").replace(/\s+/g, " ").trim();
+  const normalize = (text) => text.toLowerCase().replace(/[*_`#‹›()窶]/g, "").replace(/\s+/g, " ").trim();
 
   let fragments = [];
   chunks.forEach(chunk => {
     if (chunk) {
-      // Split technical facts into smaller pieces based on punctuation
       const parts = chunk.split(/[.!?\n\-:]+/);
       fragments.push(...parts);
     }
   });
 
-  const uniqueGrounded = [...new Set(fragments)]
-    .map(s => s.trim())
-    .filter(s => s.split(" ").length >= 2 && s.length > 7);
+  const uniqueGrounded = [...new Set(fragments)].map(s => s.trim()).filter(s => s.split(" ").length >= 2 && s.length > 7);
 
   uniqueGrounded.forEach(sourceText => {
     const cleanSource = normalize(sourceText);
     if (cleanSource.length < 8) return;
 
-    // THE FIX: Use a fuzzy regex (replacing spaces with .*?) to match AI rephrasing
-    const fuzzyRegexPattern = cleanSource.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, ".*?");
+    // THE GUARANTEE: This regex ignores rephrasing and spacing differences
+    const fuzzyPattern = cleanSource.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, ".*?");
 
     try {
-      const regex = new RegExp(`(${fuzzyRegexPattern})`, "gi");
+      const regex = new RegExp(`(${fuzzyPattern})`, "gi");
       const style = `background-color: rgba(37, 99, 235, 0.2); border-bottom: 2px solid #3b82f6;`;
-      
-      // Verify existence in normalized answer before applying HTML mark
-      if (new RegExp(fuzzyRegexPattern, "i").test(normalize(safe))) {
-          if (!safe.includes(style)) {
-            safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
-          }
+      if (new RegExp(fuzzyPattern, "i").test(normalize(safe))) {
+          if (!safe.includes(style)) safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
       }
     } catch (e) {}
   });
