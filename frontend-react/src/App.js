@@ -43,53 +43,46 @@ function convertMarkdownBold(text) {
   return text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 }
 
-/* eslint-disable no-unused-vars */
-
 function highlightSources(answer, chunks) {
   if (!chunks || chunks.length === 0) return answer.replace(/\n/g, "<br/>");
 
   let safe = answer;
   safe = convertMarkdownBold(safe); 
-  
-  // THE KEY FIX: Create a fully normalized shadow copy of the AI answer for searching
-  const shadowAnswer = safe.toLowerCase()
-    .replace(/<[^>]*>/g, "") // Remove HTML tags like <strong>
-    .replace(/[*_`#‹›()窶]/g, "") 
-    .replace(/\s+/g, " ");
 
-  const normalize = (text) => 
-    text.toLowerCase().replace(/[*_`#‹›()窶]/g, "").replace(/\s+/g, " ").trim();
+  // Normalize helper to strip PPTX artifacts
+  const clean = (text) => text.toLowerCase().replace(/[*_`#‹›()窶]/g, "").replace(/\s+/g, " ").trim();
 
-  let fragments = [];
+  // Extract technical terms from the document chunks
+  let technicalTerms = [];
   chunks.forEach(chunk => {
-    if (chunk) {
-      // Split technical facts more granularly using common punctuation
-      fragments.push(...chunk.split(/[.!?\n\-:]+/));
-    }
+    // Split by punctuation to find technical phrases (e.g., "Ian Goodfellow", "adversarial training")
+    const phrases = chunk.split(/[.!?\n\-:]+/);
+    technicalTerms.push(...phrases);
   });
 
-  // Filter for unique, meaningful technical facts
-  const uniqueGrounded = [...new Set(fragments)]
-    .map(s => s.trim())
-    .filter(s => s.split(" ").length >= 2 && s.length > 7);
+  // Unique, technical keywords only (3+ characters)
+  const uniqueKeywords = [...new Set(technicalTerms)]
+    .map(t => t.trim())
+    .filter(t => t.length > 3 && t.split(" ").length >= 1);
 
-  uniqueGrounded.forEach(sourceText => {
-    const cleanSource = normalize(sourceText);
-    if (cleanSource.length < 8) return;
+  // Sort by length so longer phrases highlight before shorter individual words
+  uniqueKeywords.sort((a, b) => b.length - a.length).forEach(keyword => {
+    const normalizedKeyword = clean(keyword);
+    if (normalizedKeyword.length < 4) return;
 
-    // Use a fuzzy regex to find the fact even if rephrased (wildcards for spaces)
-    const fuzzyPattern = cleanSource.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, ".*?");
+    // Regex that ignores punctuation and rephrasing inside the answer
+    const regexPattern = normalizedKeyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "[\\s\\W]*?");
 
     try {
-      // Search against the clean shadow copy first
-      if (new RegExp(fuzzyPattern, "i").test(shadowAnswer)) {
-        const regex = new RegExp(`(${fuzzyPattern})`, "gi");
-        const style = `background-color: rgba(37, 99, 235, 0.2); border-bottom: 2px solid #3b82f6;`;
-        
-        // Only apply if not already highlighted
-        if (!safe.includes(style)) {
-           safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
-        }
+      const regex = new RegExp(`(${regexPattern})`, "gi");
+      const style = `background-color: rgba(37, 99, 235, 0.2); border-bottom: 2px solid #3b82f6; font-weight: bold;`;
+      
+      // Match against the answer
+      if (new RegExp(regexPattern, "i").test(safe)) {
+          // Prevent nested highlights
+          if (!safe.includes(style)) {
+            safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
+          }
       }
     } catch (e) {}
   });
