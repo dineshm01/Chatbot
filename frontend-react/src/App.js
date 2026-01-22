@@ -51,8 +51,11 @@ function highlightSources(answer, chunks) {
   let safe = answer;
   safe = convertMarkdownBold(safe); 
   
-  // Create a version of the answer that is "normalized" for searching ONLY
-  const searchBase = safe.toLowerCase().replace(/[*_`#‹›()窶]/g, "").replace(/\s+/g, " ");
+  // THE KEY FIX: Create a fully normalized shadow copy of the AI answer for searching
+  const shadowAnswer = safe.toLowerCase()
+    .replace(/<[^>]*>/g, "") // Remove HTML tags like <strong>
+    .replace(/[*_`#‹›()窶]/g, "") 
+    .replace(/\s+/g, " ");
 
   const normalize = (text) => 
     text.toLowerCase().replace(/[*_`#‹›()窶]/g, "").replace(/\s+/g, " ").trim();
@@ -60,12 +63,12 @@ function highlightSources(answer, chunks) {
   let fragments = [];
   chunks.forEach(chunk => {
     if (chunk) {
-      // Split by common delimiters to get technical facts
-      const parts = chunk.split(/[.!?\n\-:]+/);
-      fragments.push(...parts);
+      // Split technical facts more granularly using common punctuation
+      fragments.push(...chunk.split(/[.!?\n\-:]+/));
     }
   });
 
+  // Filter for unique, meaningful technical facts
   const uniqueGrounded = [...new Set(fragments)]
     .map(s => s.trim())
     .filter(s => s.split(" ").length >= 2 && s.length > 7);
@@ -74,16 +77,16 @@ function highlightSources(answer, chunks) {
     const cleanSource = normalize(sourceText);
     if (cleanSource.length < 8) return;
 
-    // Use a wildcard regex to find the fact even if rephrased
+    // Use a fuzzy regex to find the fact even if rephrased (wildcards for spaces)
     const fuzzyPattern = cleanSource.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, ".*?");
 
     try {
-      // THE KEY FIX: We test against searchBase, but apply the highlight to 'safe'
-      if (new RegExp(fuzzyPattern, "i").test(searchBase)) {
+      // Search against the clean shadow copy first
+      if (new RegExp(fuzzyPattern, "i").test(shadowAnswer)) {
         const regex = new RegExp(`(${fuzzyPattern})`, "gi");
         const style = `background-color: rgba(37, 99, 235, 0.2); border-bottom: 2px solid #3b82f6;`;
         
-        // Prevent double-highlighting
+        // Only apply if not already highlighted
         if (!safe.includes(style)) {
            safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
         }
@@ -92,7 +95,8 @@ function highlightSources(answer, chunks) {
   });
 
   return safe.replace(/\n/g, "<br/>");
-}  
+}
+  
 async function sendFeedback(messageId, feedback) {
   try {
     await fetch(`${API}/api/feedback`, {
