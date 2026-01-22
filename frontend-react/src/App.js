@@ -400,6 +400,8 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
           {showDebug ? "Hide Debug Info" : "Show Debug Info"}
         </button>
           
+        /* eslint-disable no-unused-vars */
+
         <button
           onClick={clearChat}
           style={{
@@ -415,8 +417,6 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
           Clear
         </button>
             
-        /* eslint-disable no-unused-vars */
-
         <label style={{
             padding: "10px 20px",
             fontSize: "15px",
