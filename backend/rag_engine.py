@@ -113,21 +113,23 @@ def generate_answer(question, mode, memory=None, strict=False, user_id=None):
     
     answer = call_llm(prompt)
 
-    # Replace the return in generate_answer
+    # 6. Verify grounding using the same docs sent to LLM
     coverage = compute_coverage(final_docs, answer)
 
-    # THE FIX: Clean the actual text chunks sent to the highlighter
-    cleaned_chunks = [
-        d.page_content.replace("‹#›", "").replace("窶ｹ#窶ｺ", "").strip() 
-        for d in final_docs
-    ]
+    # 7. THE GUARANTEE FIX: Clean specific PPTX artifacts (‹#› and窶ｹ#窶ｺ) 
+    # and deep-normalize whitespace so the frontend matcher succeeds.
+    cleaned_retrieval = []
+    for d in final_docs:
+        clean_content = " ".join(d.page_content.split())
+        clean_content = clean_content.replace("‹#›", "").replace("窶ｹ#窶ｺ", "").strip()
+        cleaned_retrieval.append(clean_content)
 
     return {
         "text": answer.strip(),
         "confidence": compute_confidence(final_docs),
         "coverage": coverage,
         "sources": [{"source": os.path.basename(d.metadata.get("source", "Doc")), "page": d.metadata.get("page", "?")} for d in final_docs[:3]],
-        "chunks": cleaned_chunks,
-        "raw_retrieval": cleaned_chunks # This is the "Source of Truth" for highlights
+        "chunks": cleaned_retrieval,
+        "raw_retrieval": cleaned_retrieval # The Source of Truth for highlights
     }
 
