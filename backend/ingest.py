@@ -7,7 +7,11 @@ from datetime import datetime, timezone
 import os
 import re
 
-client = MongoClient(os.getenv("MONGO_URI"))
+client = MongoClient(
+    os.getenv("MONGO_URI"),
+    serverSelectionTimeoutMS=5000, # Wait 5 seconds for DB to wake up
+    directConnection=False         # Ensure it looks for the full cluster
+)
 db = client["chatbot"]
 raw_docs = db["raw_docs"]
 
@@ -52,6 +56,7 @@ def ingest_document(filepath, user_id):
     embeddings = get_embeddings()
     vectorstore = FAISS.from_documents(chunks, embeddings)
     vectorstore.save_local(VECTOR_DIR)
+
 
 
 
