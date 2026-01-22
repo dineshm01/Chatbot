@@ -43,44 +43,56 @@ function convertMarkdownBold(text) {
   return text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 }
 
+/* eslint-disable no-unused-vars */
+
 function highlightSources(answer, chunks) {
+  if (!chunks || chunks.length === 0) return answer.replace(/\n/g, "<br/>");
+
   let safe = answer;
   safe = convertMarkdownBold(safe); 
-  safe = safe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/&lt;(\/?(mark|strong))&gt;/g, "<$1>");
+  
+  // Create a version of the answer that is "normalized" for searching ONLY
+  const searchBase = safe.toLowerCase().replace(/[*_`#‹›()窶]/g, "").replace(/\s+/g, " ");
 
-  if (!chunks || chunks.length === 0) return safe.replace(/\n/g, "<br/>");
-
-  const normalize = (text) => text.toLowerCase().replace(/[*_`#‹›()窶]/g, "").replace(/\s+/g, " ").trim();
+  const normalize = (text) => 
+    text.toLowerCase().replace(/[*_`#‹›()窶]/g, "").replace(/\s+/g, " ").trim();
 
   let fragments = [];
   chunks.forEach(chunk => {
     if (chunk) {
+      // Split by common delimiters to get technical facts
       const parts = chunk.split(/[.!?\n\-:]+/);
       fragments.push(...parts);
     }
   });
 
-  const uniqueGrounded = [...new Set(fragments)].map(s => s.trim()).filter(s => s.split(" ").length >= 2 && s.length > 7);
+  const uniqueGrounded = [...new Set(fragments)]
+    .map(s => s.trim())
+    .filter(s => s.split(" ").length >= 2 && s.length > 7);
 
   uniqueGrounded.forEach(sourceText => {
     const cleanSource = normalize(sourceText);
     if (cleanSource.length < 8) return;
 
-    // THE GUARANTEE: This regex ignores rephrasing and spacing differences
+    // Use a wildcard regex to find the fact even if rephrased
     const fuzzyPattern = cleanSource.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, ".*?");
 
     try {
-      const regex = new RegExp(`(${fuzzyPattern})`, "gi");
-      const style = `background-color: rgba(37, 99, 235, 0.2); border-bottom: 2px solid #3b82f6;`;
-      if (new RegExp(fuzzyPattern, "i").test(normalize(safe))) {
-          if (!safe.includes(style)) safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
+      // THE KEY FIX: We test against searchBase, but apply the highlight to 'safe'
+      if (new RegExp(fuzzyPattern, "i").test(searchBase)) {
+        const regex = new RegExp(`(${fuzzyPattern})`, "gi");
+        const style = `background-color: rgba(37, 99, 235, 0.2); border-bottom: 2px solid #3b82f6;`;
+        
+        // Prevent double-highlighting
+        if (!safe.includes(style)) {
+           safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
+        }
       }
     } catch (e) {}
   });
 
   return safe.replace(/\n/g, "<br/>");
-}
-  
+}  
 async function sendFeedback(messageId, feedback) {
   try {
     await fetch(`${API}/api/feedback`, {
