@@ -25,7 +25,11 @@ MONGO_URI = os.getenv("MONGO_URI")
 if not MONGO_URI:
     raise RuntimeError("MONGO_URI missing")
 
-mongo_client = MongoClient(MONGO_URI)
+mongo_client = MongoClient(
+    MONGO_URI, 
+    serverSelectionTimeoutMS=5000, # 5 seconds
+    connectTimeoutMS=10000         # 10 seconds
+)
 db = mongo_client["chatbot"]
 queries = db["queries"]
 users = db["users"]
@@ -508,6 +512,7 @@ def debug_raw_docs():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
