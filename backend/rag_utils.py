@@ -54,11 +54,11 @@ def compute_coverage(docs, answer=None, threshold=80):
     if not docs or not answer:
         return {"grounded": 0, "general": 100}
 
-    # 1. Standardize Source text to remove PPTX artifacts (‹#›)
+    # Standardize docs to match PPTX artifacts exactly
     doc_text = " ".join([" ".join(d.page_content.split()) for d in docs]).lower()
     doc_text = doc_text.replace("*", "").replace("#", "").replace("‹#›", "").replace("窶ｹ#窶ｺ", "")
 
-    # 2. Extract technical sentences from AI answer
+    # Split AI answer into fragments just like the frontend highlighter
     sentences = re.split(r'[.!?\n\-:,;]|\b(?:is|are|was|were|the|an|a|to|for|with|from)\b', answer, flags=re.IGNORECASE)
     fragments = [s.strip() for s in sentences if len(s.strip()) > 8 and len(s.strip().split()) >= 2]
 
@@ -68,7 +68,7 @@ def compute_coverage(docs, answer=None, threshold=80):
     grounded_count = 0
     for frag in fragments:
         clean_frag = " ".join(frag.lower().split())
-        # 3. Use fuzzy matching to verify if fact exists in slides
+        # FIX: Use fuzzy ratio to allow for minor AI rephrasing
         if clean_frag in doc_text or fuzz.partial_ratio(clean_frag, doc_text) >= threshold:
             grounded_count += 1
 
