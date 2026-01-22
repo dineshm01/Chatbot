@@ -367,6 +367,8 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
 
         <br /><br />
 
+        /* eslint-disable no-unused-vars */
+
         <button
           onClick={ask} 
           disabled={loading || uploading}
@@ -400,8 +402,6 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
           {showDebug ? "Hide Debug Info" : "Show Debug Info"}
         </button>
           
-        /* eslint-disable no-unused-vars */
-
         <button
           onClick={clearChat}
           style={{
