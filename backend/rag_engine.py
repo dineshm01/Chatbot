@@ -116,17 +116,15 @@ def generate_answer(question, mode, memory=None, strict=False, user_id=None):
     # Calculate grounding based on the same docs sent to LLM
     coverage = compute_coverage(final_docs, answer)
 
-    # SYNC FIX: Clean artifacts so frontend fuzzy regex can turn technical terms blue
-    cleaned_chunks = [d.page_content.replace("‹#›", "").replace("窶ｹ#窶ｺ", "").strip() for d in final_docs]
+    # Inside generate_answer function...
+    cleaned_chunks = [d.page_content.replace("‹#›", "").replace("窶ｹ#窶ｺ", "").strip() for d in filtered_docs]
 
-    # Replace the return block in your generate_answer function (around line 65)
     return {
         "text": answer.strip(),
         "confidence": compute_confidence(filtered_docs),
         "coverage": coverage,
-        "sources": [{"source": d.metadata.get("source"), "page": d.metadata.get("page")} for d in filtered_docs[:3]],
-        # THE FIX: Standardize artifacts so frontend regex matching succeeds
-        "raw_retrieval": [d.page_content.replace("‹#›", "").replace("窶ｹ#窶ｺ", "").strip() for d in filtered_docs],
-        "chunks": [d.page_content for d in filtered_docs]
+        "sources": [{"source": os.path.basename(d.metadata.get("source", "Doc")), "page": d.metadata.get("page", "?")} for d in filtered_docs[:3]],
+        "chunks": cleaned_chunks,
+        "raw_retrieval": cleaned_chunks
     }
 
