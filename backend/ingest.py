@@ -19,23 +19,25 @@ def extract_questions(text):
     questions = re.findall(r"\d+\..*?\?", text, flags=re.DOTALL)
     return [q.strip() for q in questions]
 
-# Change the function signature to accept user_id
 def ingest_document(filepath, user_id): 
     docs = load_file(filepath)
     
+    # 1. Use a specialized splitter for technical slides
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=250, 
-        chunk_overlap=0,
-        separators=["\n\n", "\n", ". ", "! ", "? "]
+        chunk_size=500, # Increased to keep technical phrases like "Ian Goodfellow" together
+        chunk_overlap=50,
+        separators=["\n\n", "\n", ". ", "‹#›"] # Added artifact as a separator
     )
     chunks = text_splitter.split_documents(docs)
 
     for chunk in chunks:
-        # Deep Normalization: standardizing whitespace and removing symbols
+        # 2. DEEP NORMALIZATION: Strip all artifacts found in your PPTX
         content = " ".join(chunk.page_content.split())
-        chunk.page_content = content.replace("*", "").replace("#", "")
+        # Remove markdown and PPTX artifacts immediately
+        clean_content = content.replace("*", "").replace("#", "").replace("‹#›", "").replace("窶ｹ#窶ｺ", "")
+        chunk.page_content = clean_content.strip()
 
-    # Update or Insert user metadata with a timestamp
+    # 3. Update user metadata
     db["user_metadata"].update_one(
         {"user_id": user_id},
         {"$set": {"last_upload": datetime.now(timezone.utc)}},
@@ -43,15 +45,10 @@ def ingest_document(filepath, user_id):
     )
 
     if not chunks:
-        raise RuntimeError("No valid text extracted")
+        raise RuntimeError("No valid text extracted from document")
 
-    # FIX: Only delete documents belonging to THIS user
+    # 4. Clear old user data and save new clean index
     raw_docs.delete_many({"user_id": user_id}) 
-
-    # When inserting chunks later (if you add that logic), 
-    # ensure you include "user_id": user_id in the document.
-    
-    # Store chunks in FAISS
     embeddings = get_embeddings()
     vectorstore = FAISS.from_documents(chunks, embeddings)
     vectorstore.save_local(VECTOR_DIR)
