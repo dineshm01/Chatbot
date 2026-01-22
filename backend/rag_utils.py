@@ -54,9 +54,8 @@ def compute_coverage(docs, answer=None, threshold=80):
     if not docs or not answer:
         return {"grounded": 0, "general": 100}
 
-    # Standardize the document text to match exactly what frontend sees
     doc_text = " ".join([" ".join(d.page_content.split()) for d in docs]).lower()
-    # Remove bullet artifacts and specific encoding errors found in your PPTX logs
+    # Add the specific artifact found in your PPTX extraction
     doc_text = doc_text.replace("*", "").replace("#", "").replace("‹#›", "").replace("窶ｹ#窶ｺ", "")
 
     # Split AI answer into technical fragments based on punctuation
@@ -75,3 +74,4 @@ def compute_coverage(docs, answer=None, threshold=80):
 
     grounded_pct = int((grounded_count / len(fragments)) * 100)
     return {"grounded": grounded_pct, "general": 100 - grounded_pct}
+
