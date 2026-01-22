@@ -465,6 +465,8 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
           Show Analytics
         </button>
 
+        /* eslint-disable no-unused-vars */
+
         <button
           onClick={() => window.open(`${API}/api/export?token=${localStorage.getItem("token")}`, "_blank")}
           style={{ 
@@ -497,8 +499,6 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
         >
           Logout
         </button>
-
-/* eslint-disable no-unused-vars */
 
         <div style={{ marginTop: "24px" }}>
           {messages.map((m, i) => (
