@@ -51,22 +51,16 @@ def compute_confidence(docs):
 
 
 def compute_coverage(docs, answer=None, threshold=80):
-    """
-    Calculates groundedness based on technical fragments to match frontend highlights.
-   
-    """
     if not docs or not answer:
         return {"grounded": 0, "general": 100}
 
-    # 1. Standardize the document Source of Truth
+    # Standardize the document text to match exactly what frontend sees
     doc_text = " ".join([" ".join(d.page_content.split()) for d in docs]).lower()
-    doc_text = doc_text.replace("*", "").replace("#", "").replace("‹#›", "")
+    # Remove bullet artifacts and specific encoding errors found in your PPTX logs
+    doc_text = doc_text.replace("*", "").replace("#", "").replace("‹#›", "").replace("窶ｹ#窶ｺ", "")
 
-    # 2. Extract technical fragments from the AI's answer
-    # We split by punctuation and common filler words just like the frontend
+    # Split AI answer into technical fragments based on punctuation
     sentences = re.split(r'[.!?\n\-:,;]|\b(?:is|are|was|were|the|an|a|to|for|with|from)\b', answer, flags=re.IGNORECASE)
-    
-    # Filter for meaningful technical blocks (2+ words and 8+ chars)
     fragments = [s.strip() for s in sentences if len(s.strip()) > 8 and len(s.strip().split()) >= 2]
 
     if not fragments:
@@ -75,16 +69,9 @@ def compute_coverage(docs, answer=None, threshold=80):
     grounded_count = 0
     for frag in fragments:
         clean_frag = " ".join(frag.lower().split())
-        
-        # 3. Apply the same matching logic used for highlights
+        # Use fuzzy matching to identify grounded facts even if the AI rephrases them
         if clean_frag in doc_text or fuzz.partial_ratio(clean_frag, doc_text) >= threshold:
             grounded_count += 1
 
-    # Calculate final percentage
     grounded_pct = int((grounded_count / len(fragments)) * 100)
-    
-    # Safety clamp
-    grounded_pct = min(100, max(0, grounded_pct))
-    
     return {"grounded": grounded_pct, "general": 100 - grounded_pct}
-
