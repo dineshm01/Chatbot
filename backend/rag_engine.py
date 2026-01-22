@@ -54,46 +54,38 @@ def extract_grounded_spans(answer, docs, threshold=0.8):
 
     return grounded, [] # Returning empty list for second return value to keep it simple
 
-
 def generate_answer(question, mode, memory=None, strict=True, user_id=None): 
-    # 1. Retrieve data
     retriever = get_retriever()
+    # LANGCHAIN STEP: Retrieval
     docs = retriever.invoke(question) if retriever else []
 
-    # 2. Strict Filtering (Internal default)
-    filtered_docs = [d for d in docs if not (d.metadata.get("type") == "image" and d.metadata.get("ocr_confidence", 0) < 0.5)]
+    if not docs:
+        return {"text": "No relevant information found in the documents.", "chunks": []}
 
-    if not filtered_docs:
-        return {
-            "text": "I am sorry, but the provided documents do not contain information to answer this question.",
-            "confidence": "No context found",
-            "coverage": {"grounded": 0, "general": 0},
-            "sources": [], "chunks": [], "raw_retrieval": []
-        }
-
-    # 3. Permanent Strict Prompting
-    context_text = truncate_docs(filtered_docs)
-    # The prompt now forbids general knowledge
+    context_text = truncate_docs(docs)
+    
+    # THE STRICT LANGCHAIN PROMPT:
     prompt = (
-        f"Context: {context_text}\n\n"
-        f"Task: Answer the question using ONLY the context provided above. "
-        f"If the answer is not in the context, say you do not know. "
-        f"Do not use external information. Keep technical keywords exact.\n\n"
-        f"Question: {question}\nAnswer:"
+        f"SYSTEM: You are a strict document assistant. Use ONLY the following context to answer.\n"
+        f"CONTEXT: {context_text}\n"
+        f"RULES:\n"
+        f"1. Answer ONLY using the context above.\n"
+        f"2. If the answer is not in the context, say 'I cannot find this in the notes.'\n"
+        f"3. Maintain exact technical terms (e.g., 'SRGAN', 'G(Z)').\n"
+        f"USER QUESTION: {question}\n"
+        f"STRICT ANSWER:"
     )
     
     answer = call_llm(prompt)
-    coverage = compute_coverage(filtered_docs, answer)
-
-    # Standardize retrieval data for the frontend highlighter
-    cleaned_retrieval = [" ".join(d.page_content.split()).replace("‹#›", "").strip() for d in filtered_docs]
+    
+    # Synchronize cleaned chunks for the frontend highlighter
+    cleaned_retrieval = [" ".join(d.page_content.split()) for d in docs]
 
     return {
         "text": answer.strip(),
-        "confidence": compute_confidence(filtered_docs),
-        "coverage": coverage,
-        "sources": [{"source": os.path.basename(d.metadata.get("source", "Doc")), "page": d.metadata.get("page", "?")} for d in filtered_docs[:3]],
-        "chunks": cleaned_retrieval,
-        "raw_retrieval": cleaned_retrieval 
+        "confidence": compute_confidence(docs),
+        "coverage": compute_coverage(docs, answer),
+        "sources": [{"source": os.path.basename(d.metadata.get("source", "Doc")), "page": d.metadata.get("page", "?")} for d in docs[:3]],
+        "raw_retrieval": cleaned_retrieval,
+        "chunks": cleaned_retrieval
     }
-
