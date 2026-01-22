@@ -217,14 +217,26 @@ def ask():
     }
     res = queries.insert_one(record)
 
+    # Format the confidence score for the UI
+    raw_confidence = result.get("confidence", 0)
+    if isinstance(raw_confidence, (float, int)):
+        # Convert 0.85 -> "85%"
+        formatted_confidence = f"{int(raw_confidence * 100)}%"
+    else:
+        # Keep strings like "Strict mode" or "Exact match" as-is
+        formatted_confidence = str(raw_confidence)
+
     return jsonify({
         "id": str(res.inserted_id),
         "text": display_text,
-        # Convert confidence to a percentage string
-        "confidence": f"{int(result['confidence'] * 100)}%" if isinstance(result['confidence'], (int, float)) else result['confidence'],
-        "coverage": result["coverage"],
-        "raw_retrieval": result.get("raw_retrieval", []),
-        "sources": result.get("sources", [])
+        "confidence": formatted_confidence,
+        "coverage": result.get("coverage", {"grounded": 0, "general": 100}),
+        "sources": result.get("sources", []),
+        # THE HIGHLIGHT FIX: Clean PPTX artifacts so frontend matches AI answer
+        "raw_retrieval": [
+            d.page_content.replace("‹#›", "").replace("窶ｹ#窶ｺ", "").strip() 
+            for d in filtered_docs
+        ]
     })
     
 @app.route("/api/history", methods=["GET"])
@@ -512,6 +524,7 @@ def debug_raw_docs():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
