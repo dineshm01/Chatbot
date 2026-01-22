@@ -3,7 +3,6 @@ import Login from "./Login";
 
 function App() {
   const [showDebug, setShowDebug] = useState(false);
-  const [strictMode, setStrictMode] = useState(false);
   const [question, setQuestion] = useState("");
   const [mode, setMode] = useState("Detailed");
   const [loading, setLoading] = useState(false);
