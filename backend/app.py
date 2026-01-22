@@ -186,52 +186,33 @@ def ask():
         })
 
     try:
-        # Generate the answer
         result = generate_answer(q, mode, memory, strict, user_id=request.user_id)
         
-        # 2. Correctly retrieve and filter docs for the Metadata Preview
-        from rag_utils import get_retriever
-        retriever = get_retriever()
-        if retriever:
-            retrieved_docs = retriever.invoke(q)
-            # Filter and assign to the variable used in the return statement
-            filtered_docs = [d for d in retrieved_docs if d.metadata.get("ocr_confidence", 1.0) >= 0.5]
-            
+        # RECORD TO DB
+        record = {
+            "user_id": request.user_id,
+            "question": q,
+            "text": result["text"],
+            "confidence": result.get("confidence", ""),
+            "coverage": result.get("coverage", 0),
+            "sources": result.get("sources", []),
+            "chunks": result.get("chunks", []), # Use the chunks from result!
+            "created_at": datetime.now(timezone.utc)
+        }
+        res = queries.insert_one(record)
+
+        # THE FIX: Return directly from the result object to ensure synchronization
+        return jsonify({
+            "id": str(res.inserted_id),
+            "text": result["text"],
+            "confidence": result.get("confidence", "Unknown"),
+            "coverage": result.get("coverage", {"grounded": 0, "general": 100}),
+            "sources": result.get("sources", []),
+            "raw_retrieval": result.get("raw_retrieval", []), # This is cleaned in rag_engine
+            "chunks": result.get("chunks", [])
+        })
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 400
-
-    display_text = result.get("display_text", result["text"])
-
-    record = {
-        "user_id": request.user_id,
-        "question": q,
-        "mode": mode,
-        "text": display_text,
-        "confidence": result.get("confidence", ""),
-        "coverage": result.get("coverage", 0),
-        "sources": result.get("sources", []),
-        "chunks": result.get("chunks", []),
-        "created_at": datetime.now(timezone.utc)
-    }
-    res = queries.insert_one(record)
-
-    # Inside ask() route return block
-    raw_conf = result.get("confidence", 0)
-    formatted_conf = f"{int(raw_conf * 100)}%" if isinstance(raw_conf, (float, int)) else str(raw_conf)
-
-    return jsonify({
-        "id": str(res.inserted_id),
-        "text": display_text,
-        "confidence": formatted_conf,
-        "coverage": result.get("coverage", {"grounded": 0, "general": 100}),
-        "sources": result.get("sources", []),
-        "raw_retrieval": [
-            d.page_content.replace("‹#›", "").replace("窶ｹ#窶ｺ", "").strip() 
-            for d in filtered_docs
-        ]
-    })
+        return jsonify({"error": str(e)}), 500
     
 @app.route("/api/history", methods=["GET"])
 @require_auth
@@ -518,6 +499,7 @@ def debug_raw_docs():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
