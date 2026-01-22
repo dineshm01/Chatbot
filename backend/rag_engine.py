@@ -57,10 +57,9 @@ def extract_grounded_spans(answer, docs, threshold=0.8):
 
 def generate_answer(question, mode, memory=None, strict=False, user_id=None): 
     """
-    Core RAG engine that retrieves data, generates a style-specific answer, 
-    and verifies grounding before returning.
+    Core RAG engine with existing index query support and fixed highlighting logic.
     """
-    # 1. Check for specific document index queries (e.g., "What is the 1st question?")
+    # KEEP: Your existing logic for specific index queries
     m = re.search(r"(\d+)(st|nd|rd|th)?\s+question", question.lower())
     if m:
         idx = int(m.group(1))
@@ -73,47 +72,58 @@ def generate_answer(question, mode, memory=None, strict=False, user_id=None):
                 "confidence": "Exact match from document",
                 "coverage": {"grounded": 100, "general": 0},
                 "sources": [{"source": item.get("source"), "page": item.get("page")}],
-                "chunks": [item["text"]]
+                "chunks": [item["text"]],
+                "raw_retrieval": [item["text"]] # Added for highlighter
             }
 
-    # 2. Retrieve relevant slides from the persistent FAISS index
+    # UPDATE: New optimized RAG flow
     memory = memory or []
     retriever = get_retriever()
     docs = retriever.invoke(question) if retriever else []
 
-    # 3. Filter retrieved content for quality
-    filtered_docs = [
-        d for d in docs
-        if not (d.metadata.get("type") == "image" and d.metadata.get("ocr_confidence", 0) < 0.5)
-    ]
+    # FIX: Per-chunk filtering to capture specific technical terms (e.g., GAN, SRGAN)
+    # This prevents the context-dilution bug found in your current docs_are_relevant logic
+    filtered_docs = []
+    for d in docs:
+        if d.metadata.get("type") == "image" and d.metadata.get("ocr_confidence", 0) < 0.5:
+            continue
+        # Lower threshold for individual chunks ensures specifics like 'Ian Goodfellow' aren't filtered out
+        score = fuzz.partial_ratio(question.lower(), d.page_content.lower())
+        if score >= 25: 
+            filtered_docs.append(d)
 
-    # 4. Handle Strict Mode restrictions
+    # Handle Strict Mode
     if strict and not filtered_docs:
         return {
-            "text": "❌ Strict mode: No relevant information found in your documents.",
+            "text": "❌ Strict mode: No relevant technical details found in the slides.",
             "confidence": "Strict mode",
             "coverage": {"grounded": 0, "general": 0},
             "sources": [],
-            "chunks": []
+            "chunks": [],
+            "raw_retrieval": []
         }
 
-    # 5. Build the prompt and call the LLM
-    context_text = truncate_docs(filtered_docs)
+    # Fallback to top docs if not in strict mode
+    final_docs = filtered_docs if filtered_docs else docs[:3]
+
+    # Build prompt and generate answer
+    context_text = truncate_docs(final_docs)
     memory_text = "\n".join(f"{m['role']}: {m['text']}" for m in memory)
     prompt = f"Conversation:\n{memory_text}\n\nStyle: {mode}\nReference:\n{context_text}\nQuestion: {question}\nAnswer:"
     
     answer = call_llm(prompt)
 
-    # 6. Verify grounding using the updated normalization logic
-    grounded_sentences, _ = extract_grounded_spans(answer, filtered_docs)
-    coverage = compute_coverage(filtered_docs, answer)
+    # Calculate grounding based on the same docs sent to LLM
+    coverage = compute_coverage(final_docs, answer)
+
+    # SYNC FIX: Clean artifacts so frontend fuzzy regex can turn technical terms blue
+    cleaned_chunks = [d.page_content.replace("‹#›", "").replace("窶ｹ#窶ｺ", "").strip() for d in final_docs]
 
     return {
         "text": answer.strip(),
-        "confidence": compute_confidence(filtered_docs),
+        "confidence": compute_confidence(final_docs),
         "coverage": coverage,
-        "sources": [{"source": d.metadata.get("source"), "page": d.metadata.get("page")} for d in filtered_docs[:3]],
-        # This cleans the fragments so the frontend matching logic is successful
-        "chunks": [d.page_content.replace("‹#›", "").strip() for d in filtered_docs], 
-        "debug": {"retrieved_docs": len(filtered_docs)}
+        "sources": [{"source": os.path.basename(d.metadata.get("source", "Doc")), "page": d.metadata.get("page", "?")} for d in final_docs[:3]],
+        "chunks": cleaned_chunks,
+        "raw_retrieval": cleaned_chunks # This is the key for blue highlights
     }
