@@ -54,11 +54,12 @@ def compute_coverage(docs, answer=None, threshold=80):
     if not docs or not answer:
         return {"grounded": 0, "general": 100}
 
+    # 1. Clean the Source of Truth to remove all bullet point artifacts
     doc_text = " ".join([" ".join(d.page_content.split()) for d in docs]).lower()
-    # Add the specific artifact found in your PPTX extraction
+    # Remove specific artifacts found in your PPTX extraction
     doc_text = doc_text.replace("*", "").replace("#", "").replace("‹#›", "").replace("窶ｹ#窶ｺ", "")
 
-    # Split AI answer into technical fragments based on punctuation
+    # 2. Split AI answer into technical fragments based on punctuation
     sentences = re.split(r'[.!?\n\-:,;]|\b(?:is|are|was|were|the|an|a|to|for|with|from)\b', answer, flags=re.IGNORECASE)
     fragments = [s.strip() for s in sentences if len(s.strip()) > 8 and len(s.strip().split()) >= 2]
 
@@ -68,7 +69,7 @@ def compute_coverage(docs, answer=None, threshold=80):
     grounded_count = 0
     for frag in fragments:
         clean_frag = " ".join(frag.lower().split())
-        # Use fuzzy matching to identify grounded facts even if the AI rephrases them
+        # 3. Use fuzzy matching to verify if the technical fact exists in the slides
         if clean_frag in doc_text or fuzz.partial_ratio(clean_frag, doc_text) >= threshold:
             grounded_count += 1
 
