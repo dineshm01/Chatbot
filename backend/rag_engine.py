@@ -119,11 +119,14 @@ def generate_answer(question, mode, memory=None, strict=False, user_id=None):
     # SYNC FIX: Clean artifacts so frontend fuzzy regex can turn technical terms blue
     cleaned_chunks = [d.page_content.replace("‹#›", "").replace("窶ｹ#窶ｺ", "").strip() for d in final_docs]
 
+    # Replace the return block in your generate_answer function (around line 65)
     return {
         "text": answer.strip(),
-        "confidence": compute_confidence(final_docs),
+        "confidence": compute_confidence(filtered_docs),
         "coverage": coverage,
-        "sources": [{"source": os.path.basename(d.metadata.get("source", "Doc")), "page": d.metadata.get("page", "?")} for d in final_docs[:3]],
-        "chunks": cleaned_chunks,
-        "raw_retrieval": cleaned_chunks # This is the key for blue highlights
+        "sources": [{"source": d.metadata.get("source"), "page": d.metadata.get("page")} for d in filtered_docs[:3]],
+        # THE FIX: Standardize artifacts so frontend regex matching succeeds
+        "raw_retrieval": [d.page_content.replace("‹#›", "").replace("窶ｹ#窶ｺ", "").strip() for d in filtered_docs],
+        "chunks": [d.page_content for d in filtered_docs]
     }
+
