@@ -55,81 +55,45 @@ def extract_grounded_spans(answer, docs, threshold=0.8):
     return grounded, [] # Returning empty list for second return value to keep it simple
 
 
-def generate_answer(question, mode, memory=None, strict=False, user_id=None): 
-    """
-    Core RAG engine with existing index query support and fixed highlighting logic.
-    """
-    # KEEP: Your existing logic for specific index queries
-    m = re.search(r"(\d+)(st|nd|rd|th)?\s+question", question.lower())
-    if m:
-        idx = int(m.group(1))
-        cursor = raw_docs.find({"user_id": user_id}, sort=[("index", 1)]).skip(idx - 1).limit(1)
-        items = list(cursor)
-        if items:
-            item = items[0]
-            return {
-                "text": item["text"],
-                "confidence": "Exact match from document",
-                "coverage": {"grounded": 100, "general": 0},
-                "sources": [{"source": item.get("source"), "page": item.get("page")}],
-                "chunks": [item["text"]],
-                "raw_retrieval": [item["text"]] # Added for highlighter
-            }
-
-    # UPDATE: New optimized RAG flow
-    memory = memory or []
+def generate_answer(question, mode, memory=None, strict=True, user_id=None): 
+    # 1. Retrieve data
     retriever = get_retriever()
     docs = retriever.invoke(question) if retriever else []
 
-    # FIX: Per-chunk filtering to capture specific technical terms (e.g., GAN, SRGAN)
-    # This prevents the context-dilution bug found in your current docs_are_relevant logic
-    filtered_docs = []
-    for d in docs:
-        if d.metadata.get("type") == "image" and d.metadata.get("ocr_confidence", 0) < 0.5:
-            continue
-        # Lower threshold for individual chunks ensures specifics like 'Ian Goodfellow' aren't filtered out
-        score = fuzz.partial_ratio(question.lower(), d.page_content.lower())
-        if score >= 25: 
-            filtered_docs.append(d)
+    # 2. Strict Filtering (Internal default)
+    filtered_docs = [d for d in docs if not (d.metadata.get("type") == "image" and d.metadata.get("ocr_confidence", 0) < 0.5)]
 
-    # Handle Strict Mode
-    if strict and not filtered_docs:
+    if not filtered_docs:
         return {
-            "text": "❌ Strict mode: No relevant technical details found in the slides.",
-            "confidence": "Strict mode",
+            "text": "I am sorry, but the provided documents do not contain information to answer this question.",
+            "confidence": "No context found",
             "coverage": {"grounded": 0, "general": 0},
-            "sources": [],
-            "chunks": [],
-            "raw_retrieval": []
+            "sources": [], "chunks": [], "raw_retrieval": []
         }
 
-    # Fallback to top docs if not in strict mode
-    final_docs = filtered_docs if filtered_docs else docs[:3]
-
-    # Build prompt and generate answer
-    context_text = truncate_docs(final_docs)
-    memory_text = "\n".join(f"{m['role']}: {m['text']}" for m in memory)
-    prompt = f"Conversation:\n{memory_text}\n\nStyle: {mode}\nReference:\n{context_text}\nQuestion: {question}\nAnswer:"
+    # 3. Permanent Strict Prompting
+    context_text = truncate_docs(filtered_docs)
+    # The prompt now forbids general knowledge
+    prompt = (
+        f"Context: {context_text}\n\n"
+        f"Task: Answer the question using ONLY the context provided above. "
+        f"If the answer is not in the context, say you do not know. "
+        f"Do not use external information. Keep technical keywords exact.\n\n"
+        f"Question: {question}\nAnswer:"
+    )
     
     answer = call_llm(prompt)
+    coverage = compute_coverage(filtered_docs, answer)
 
-    # 6. Verify grounding using the same docs sent to LLM
-    coverage = compute_coverage(final_docs, answer)
-
-    # 7. THE GUARANTEE FIX: Clean specific PPTX artifacts (‹#› and窶ｹ#窶ｺ) 
-    # and deep-normalize whitespace so the frontend matcher succeeds.
-    cleaned_retrieval = []
-    for d in final_docs:
-        clean_content = " ".join(d.page_content.split())
-        clean_content = clean_content.replace("‹#›", "").replace("窶ｹ#窶ｺ", "").strip()
-        cleaned_retrieval.append(clean_content)
+    # Standardize retrieval data for the frontend highlighter
+    cleaned_retrieval = [" ".join(d.page_content.split()).replace("‹#›", "").strip() for d in filtered_docs]
 
     return {
         "text": answer.strip(),
-        "confidence": compute_confidence(final_docs),
+        "confidence": compute_confidence(filtered_docs),
         "coverage": coverage,
-        "sources": [{"source": os.path.basename(d.metadata.get("source", "Doc")), "page": d.metadata.get("page", "?")} for d in final_docs[:3]],
+        "sources": [{"source": os.path.basename(d.metadata.get("source", "Doc")), "page": d.metadata.get("page", "?")} for d in filtered_docs[:3]],
         "chunks": cleaned_retrieval,
-        "raw_retrieval": cleaned_retrieval # The Source of Truth for highlights
+        "raw_retrieval": cleaned_retrieval 
     }
 
