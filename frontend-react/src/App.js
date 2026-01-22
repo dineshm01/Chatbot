@@ -367,8 +367,6 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
 
         <br /><br />
 
-        /* eslint-disable no-unused-vars */
-
         <button
           onClick={ask} 
           disabled={loading || uploading}
@@ -581,7 +579,7 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
                     <button onClick={() => toggleBookmark(m.id, !m.bookmarked)}>
                       {m.bookmarked ? "⭐ Bookmarked" : "☆ Bookmark"}
                     </button>
-                    <button onClick={() => sendFeedback(m.id, "up")} style={{ marginLeft: "4px" }}>👍</button>
+                    <button onClick={() => sendFeedback(m.id, "up")} style={{ marginLeft: "6px" }}>👍</button>
                     <button onClick={() => sendFeedback(m.id, "down")} style={{ marginLeft: "6px" }}>👎</button>
                   </div>
                 </div>
