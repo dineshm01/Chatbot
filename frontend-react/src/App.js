@@ -450,6 +450,8 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
           Show History
         </button>
         
+        /* eslint-disable no-unused-vars */
+
         <button 
           onClick={loadAnalytics} 
           style={{ 
@@ -464,8 +466,6 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
         >
           Show Analytics
         </button>
-
-        /* eslint-disable no-unused-vars */
 
         <button
           onClick={() => window.open(`${API}/api/export?token=${localStorage.getItem("token")}`, "_blank")}
