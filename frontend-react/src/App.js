@@ -58,7 +58,7 @@ function highlightSources(answer, chunks) {
   let fragments = [];
   chunks.forEach(chunk => {
     if (chunk) {
-      // Split technical facts into smaller pieces for more accurate highlighting
+      // Split technical facts into smaller pieces based on punctuation
       const parts = chunk.split(/[.!?\n\-:]+/);
       fragments.push(...parts);
     }
@@ -70,16 +70,17 @@ function highlightSources(answer, chunks) {
 
   uniqueGrounded.forEach(sourceText => {
     const cleanSource = normalize(sourceText);
-    if (cleanSource.length < 9) return;
+    if (cleanSource.length < 8) return;
 
-    // Use a fuzzy regex pattern (replacing spaces with .*?) to match rephrased text
-    const fuzzyRegex = cleanSource.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, ".*?");
+    // THE FIX: Use a fuzzy regex (replacing spaces with .*?) to match AI rephrasing
+    const fuzzyRegexPattern = cleanSource.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, ".*?");
 
     try {
-      const regex = new RegExp(`(${fuzzyRegex})`, "gi");
+      const regex = new RegExp(`(${fuzzyRegexPattern})`, "gi");
       const style = `background-color: rgba(37, 99, 235, 0.2); border-bottom: 2px solid #3b82f6;`;
       
-      if (new RegExp(fuzzyRegex, "i").test(normalize(safe))) {
+      // Verify existence in normalized answer before applying HTML mark
+      if (new RegExp(fuzzyRegexPattern, "i").test(normalize(safe))) {
           if (!safe.includes(style)) {
             safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
           }
