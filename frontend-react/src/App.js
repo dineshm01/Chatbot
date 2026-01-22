@@ -415,6 +415,8 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
           Clear
         </button>
             
+        /* eslint-disable no-unused-vars */
+
         <label style={{
             padding: "10px 20px",
             fontSize: "15px",
@@ -435,8 +437,6 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
           />
         </label>
       
-        /* eslint-disable no-unused-vars */
-
         <button 
           onClick={loadHistoryPanel}
           style={{
