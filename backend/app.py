@@ -217,16 +217,16 @@ def ask():
     }
     res = queries.insert_one(record)
 
-    raw_confidence = result.get("confidence", 0)
-    formatted_confidence = f"{int(raw_confidence * 100)}%" if isinstance(raw_confidence, (float, int)) else str(raw_confidence)
+    # Inside ask() route return block
+    raw_conf = result.get("confidence", 0)
+    formatted_conf = f"{int(raw_conf * 100)}%" if isinstance(raw_conf, (float, int)) else str(raw_conf)
 
     return jsonify({
         "id": str(res.inserted_id),
         "text": display_text,
-        "confidence": formatted_confidence,
+        "confidence": formatted_conf,
         "coverage": result.get("coverage", {"grounded": 0, "general": 100}),
         "sources": result.get("sources", []),
-        # CRITICAL: Clean chunks so the frontend fuzzy regex can find matches
         "raw_retrieval": [
             d.page_content.replace("‹#›", "").replace("窶ｹ#窶ｺ", "").strip() 
             for d in filtered_docs
@@ -518,6 +518,7 @@ def debug_raw_docs():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
