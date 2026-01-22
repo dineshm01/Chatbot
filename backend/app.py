@@ -219,7 +219,8 @@ def ask():
         "coverage": result["coverage"],
         "chunks": result.get("chunks", []),
         "sources": result.get("sources", []),
-        "raw_retrieval": [d.page_content for d in filtered_docs] # Now safe to use
+        # This ensures technical facts from slide 6 appear in the debug window
+        "raw_retrieval": [d.page_content for d in filtered_docs] 
     })
     
 @app.route("/api/history", methods=["GET"])
@@ -507,6 +508,7 @@ def debug_raw_docs():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
