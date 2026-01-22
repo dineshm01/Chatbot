@@ -220,12 +220,11 @@ def ask():
     return jsonify({
         "id": str(res.inserted_id),
         "text": display_text,
-        "confidence": f"{int(result['confidence'] * 100)}%" if isinstance(result['confidence'], float) else result['confidence'],
+        # Convert confidence to a percentage string
+        "confidence": f"{int(result['confidence'] * 100)}%" if isinstance(result['confidence'], (int, float)) else result['confidence'],
         "coverage": result["coverage"],
-        "chunks": result.get("chunks", []),
-        "sources": result.get("sources", []),
-        # CRITICAL FIX: Clean '‹#›' here so the frontend highlighter can match the text
-        "raw_retrieval": [d.page_content.replace("‹#›", "").strip() for d in filtered_docs]
+        "raw_retrieval": result.get("raw_retrieval", []),
+        "sources": result.get("sources", [])
     })
     
 @app.route("/api/history", methods=["GET"])
@@ -513,6 +512,7 @@ def debug_raw_docs():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
