@@ -51,15 +51,26 @@ def compute_confidence(docs):
 
 
 def compute_coverage(docs, answer=None, threshold=80):
+    """
+    Calculates groundedness using Shadow Normalization to match frontend highlights.
+    """
     if not docs or not answer:
         return {"grounded": 0, "general": 100}
 
-    # Standardize docs to match PPTX artifacts exactly
-    doc_text = " ".join([" ".join(d.page_content.split()) for d in docs]).lower()
-    doc_text = doc_text.replace("*", "").replace("#", "").replace("‹#›", "").replace("窶ｹ#窶ｺ", "")
+    # 1. SHADOW NORMALIZATION for the Answer (Removes HTML tags and symbols)
+    # This prevents markdown bolding (**word**) from breaking the match
+    shadow_answer = re.sub(r'<[^>]*>', '', answer) # Remove HTML tags
+    shadow_answer = shadow_answer.lower()
+    shadow_answer = re.sub(r'[*_`#‹›()窶]', '', shadow_answer)
+    shadow_answer = " ".join(shadow_answer.split())
 
-    # Split AI answer into fragments just like the frontend highlighter
-    sentences = re.split(r'[.!?\n\-:,;]|\b(?:is|are|was|were|the|an|a|to|for|with|from)\b', answer, flags=re.IGNORECASE)
+    # 2. SHADOW NORMALIZATION for the Documents
+    doc_text = " ".join([" ".join(d.page_content.split()) for d in docs]).lower()
+    doc_text = re.sub(r'[*_`#‹›()窶]', '', doc_text)
+
+    # 3. Extract technical fragments from the cleaned shadow answer
+    # We split by punctuation and filler words
+    sentences = re.split(r'[.!?\n\-:,;]|\b(?:is|are|was|were|the|an|a|to|for|with|from)\b', shadow_answer, flags=re.IGNORECASE)
     fragments = [s.strip() for s in sentences if len(s.strip()) > 8 and len(s.strip().split()) >= 2]
 
     if not fragments:
@@ -67,11 +78,12 @@ def compute_coverage(docs, answer=None, threshold=80):
 
     grounded_count = 0
     for frag in fragments:
-        clean_frag = " ".join(frag.lower().split())
-        # FIX: Use fuzzy ratio to allow for minor AI rephrasing
+        clean_frag = " ".join(frag.split())
+        # FIX: Check if the fragment exists in the normalized source text
         if clean_frag in doc_text or fuzz.partial_ratio(clean_frag, doc_text) >= threshold:
             grounded_count += 1
 
     grounded_pct = int((grounded_count / len(fragments)) * 100)
     return {"grounded": grounded_pct, "general": 100 - grounded_pct}
+
 
