@@ -48,40 +48,32 @@ function highlightSources(answer, chunks) {
   let safe = answer;
   safe = convertMarkdownBold(safe); 
 
-  // Normalize helper to strip PPTX artifacts
   const clean = (text) => text.toLowerCase().replace(/[*_`#‹›()窶]/g, "").replace(/\s+/g, " ").trim();
 
-  // Extract technical terms from the document chunks
-  let technicalTerms = [];
+  // Extract all technical phrases from the LangChain retrieved chunks
+  let technicalKeywords = [];
   chunks.forEach(chunk => {
-    // Split by punctuation to find technical phrases (e.g., "Ian Goodfellow", "adversarial training")
     const phrases = chunk.split(/[.!?\n\-:]+/);
-    technicalTerms.push(...phrases);
+    technicalKeywords.push(...phrases);
   });
 
-  // Unique, technical keywords only (3+ characters)
-  const uniqueKeywords = [...new Set(technicalTerms)]
+  // Sort by length (longest first) to prevent short words from breaking long phrases
+  const uniqueKeywords = [...new Set(technicalKeywords)]
     .map(t => t.trim())
-    .filter(t => t.length > 3 && t.split(" ").length >= 1);
+    .filter(t => t.length > 4)
+    .sort((a, b) => b.length - a.length);
 
-  // Sort by length so longer phrases highlight before shorter individual words
-  uniqueKeywords.sort((a, b) => b.length - a.length).forEach(keyword => {
-    const normalizedKeyword = clean(keyword);
-    if (normalizedKeyword.length < 4) return;
-
-    // Regex that ignores punctuation and rephrasing inside the answer
-    const regexPattern = normalizedKeyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "[\\s\\W]*?");
+  uniqueKeywords.forEach(keyword => {
+    const normalized = clean(keyword);
+    // Regex that allows for minor spacing/punctuation differences
+    const regexPattern = normalized.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "[\\s\\W]*?");
 
     try {
       const regex = new RegExp(`(${regexPattern})`, "gi");
       const style = `background-color: rgba(37, 99, 235, 0.2); border-bottom: 2px solid #3b82f6; font-weight: bold;`;
       
-      // Match against the answer
-      if (new RegExp(regexPattern, "i").test(safe)) {
-          // Prevent nested highlights
-          if (!safe.includes(style)) {
-            safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
-          }
+      if (new RegExp(regexPattern, "i").test(safe) && !safe.includes(style)) {
+        safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
       }
     } catch (e) {}
   });
