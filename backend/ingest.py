@@ -12,7 +12,7 @@ db = client["chatbot"]
 raw_docs = db["raw_docs"]
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# This forces the folder to be 'backend/vectorstore' which matches your persistent volume
+# Force the folder to match the persistent volume mount point exactly
 VECTOR_DIR = os.path.join(BASE_DIR, "vectorstore")
 
 def extract_questions(text):
@@ -55,6 +55,7 @@ def ingest_document(filepath, user_id):
     embeddings = get_embeddings()
     vectorstore = FAISS.from_documents(chunks, embeddings)
     vectorstore.save_local(VECTOR_DIR)
+
 
 
 
