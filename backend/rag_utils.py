@@ -42,11 +42,11 @@ def get_retriever():
     if not vectorstore:
         return None
     return vectorstore.as_retriever(
-    search_kwargs={
-        "k": 20
-    }
-)
-
+        search_kwargs={
+            "k": 5 # Reduced from 20 to stop 'stuffing' the answer with irrelevant slides
+        }
+    )
+    
 def truncate_docs(docs, max_chars=1500):
     text = ""
     for d in docs:
@@ -107,4 +107,5 @@ def compute_coverage(docs, answer=None, threshold=80):
 
     grounded_pct = int((grounded_count / len(fragments)) * 100)
     return {"grounded": grounded_pct, "general": 100 - grounded_pct}
+
 
