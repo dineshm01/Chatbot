@@ -79,17 +79,18 @@ function highlightSources(answer, chunks) {
 
     // We walk through every text node inside the HTML to find matches
     const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT, null, false);
-    let node;
     const nodesToReplace = [];
 
-    while (node = walker.nextNode()) {
+    let node = walker.nextNode();
+    while (node) {
       const nodeText = node.nodeValue;
       const cleanNodeText = clean(nodeText);
-      
+  
       if (cleanNodeText.includes(target)) {
         nodesToReplace.push(node);
       }
-    }
+      node = walker.nextNode(); // Move to the next node inside the loop  
+    }  
 
     nodesToReplace.forEach(textNode => {
       const parent = textNode.parentNode;
