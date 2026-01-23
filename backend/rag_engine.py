@@ -4,6 +4,7 @@ from utils.llm import call_llm
 from rapidfuzz import fuzz
 import re
 from pymongo import MongoClient
+from langchain.prompts import PromptTemplate
 import os
 from rag_utils import (
     load_vectorstore,
@@ -17,6 +18,30 @@ client = MongoClient(os.getenv("MONGO_URI"))
 db = client["chatbot"]
 raw_docs = db["raw_docs"]
 
+
+# 1. Define the TEMPLATE as a separate, configurable object
+RAG_TEMPLATE = """
+CONTEXT FROM SLIDES:
+{context_text}
+
+USER QUESTION: 
+{question}
+
+STRICT RULES:
+1. Only answer using the EXACT bullets and definitions from the context.
+2. DO NOT create your own summary sentences like 'There are two GANs' if that exact phrase is not in the slides.
+3. If describing components, use the exact slide headings (e.g., 'Purpose of GAN' or 'Architecture').
+4. Keep the original bullet-point structure. Do not merge unrelated slides into one paragraph.
+
+Technical Fact-Based Answer:
+""".strip()
+
+# 2. Initialize the PromptTemplate object
+# This identifies 'context_text' and 'question' as the only dynamic inputs
+rag_prompt_custom = PromptTemplate(
+    input_variables=["context_text", "question"],
+    template=RAG_TEMPLATE
+)
 
 def docs_are_relevant(question, docs, threshold=30):
     if not docs:
@@ -64,18 +89,11 @@ def generate_answer(question, mode, memory=None, strict=True, user_id=None):
 
     context_text = truncate_docs(docs)
     
-    # 2. THE RELEVANCY FILTER PROMPT: Explicitly forbids unrelated topics
-    # This prevents the bot from 'vomiting' the whole PPTX
-    prompt = (
-        f"SOURCE DATA:\n{context_text}\n\n"
-        f"USER QUESTION: {question}\n\n"
-        f"STRICT INSTRUCTION:\n"
-        f"1. Extract ONLY information that directly answers: '{question}'.\n"
-        f"2. IMMEDIATELY DISCARD any text about unrelated history, authors, or general background "
-        f"unless specifically asked for.\n"
-        f"3. Copy the relevant sentences EXACTLY as they appear. Do not paraphrase.\n"
-        f"4. If no part of the SOURCE DATA is relevant to the question, say 'Not found in slides.'\n\n"
-        f"Focused Technical Answer (Exact Quotes Only):"
+    # 3. DYNAMIC GENERATION: No hardcoded string inside the function
+    # The .format() method safely injects variables into the template
+    final_prompt = rag_prompt_custom.format(
+        context_text=context_text,
+        question=question
     )
     
     answer = call_llm(prompt)
@@ -111,4 +129,5 @@ def generate_answer(question, mode, memory=None, strict=True, user_id=None):
         "chunks": raw_chunks 
     }
     
+
 
