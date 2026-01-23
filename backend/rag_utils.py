@@ -77,32 +77,34 @@ def compute_confidence(docs):
     # 3. Low Confidence: Stray keywords found but insufficient for a full technical answer
     return "🔵 Confidence: Limited context available"
 
-def compute_coverage(docs, answer=None, threshold=85):
+def compute_coverage(docs, answer=None, threshold=80):
     if not docs or not answer:
         return {"grounded": 0, "general": 100}
 
-    # Clean the answer by removing HTML tags first
+    # 1. Clean the Answer (Standardize for comparison)
     clean_answer = re.sub(r'<[^>]*>', '', answer)
     clean_answer = re.sub(r'[*_`#‹›()窶]', '', clean_answer).lower()
+    clean_answer = " ".join(clean_answer.split())
 
-    # Extract full technical segments from the PPTX
-    all_doc_content = "\n".join([d.page_content for d in docs])
-    doc_segments = [s.strip().lower() for s in all_doc_content.split('\n') if len(s.strip()) > 12]
-    doc_segments = list(set([re.sub(r'[*_`#‹›()窶]', '', s) for s in doc_segments]))
+    # 2. Extract full sentences from slides
+    all_doc_content = " ".join([d.page_content for d in docs]).lower()
+    all_doc_content = re.sub(r'[*_`#‹›()窶]', '', all_doc_content)
+    all_doc_content = " ".join(all_doc_content.split())
 
-    grounded_points = 0
-    total_checked = 0
+    # 3. Use your existing fragment logic but with better normalization
+    # We split the answer into chunks of 8+ characters to check for groundedness
+    sentences = re.split(r'[.!?\n\-:,;]', clean_answer)
+    fragments = [s.strip() for s in sentences if len(s.strip()) > 10]
 
-    for segment in doc_segments:
-        # If the AI mentions the topic of the segment
-        if any(word in clean_answer for word in segment.split()[:3]):
-            total_checked += 1
-            # Use fuzzy matching for the whole technical sentence
-            if segment in clean_answer or fuzz.partial_ratio(segment, clean_answer) >= threshold:
-                grounded_points += 1
+    if not fragments:
+        return {"grounded": 0, "general": 100}
 
-    if total_checked == 0: return {"grounded": 0, "general": 100}
-    grounded_pct = min(100, int((grounded_points / total_checked) * 100))
+    grounded_count = 0
+    for frag in fragments:
+        # If the fragment from the AI's answer exists anywhere in the retrieved slides
+        if frag in all_doc_content or fuzz.partial_ratio(frag, all_doc_content) >= threshold:
+            grounded_count += 1
+
+    grounded_pct = int((grounded_count / len(fragments)) * 100)
     return {"grounded": grounded_pct, "general": 100 - grounded_pct}
-
 
