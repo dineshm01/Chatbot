@@ -64,18 +64,15 @@ def generate_answer(question, mode, memory=None, strict=True, user_id=None):
 
     context_text = truncate_docs(docs)
     
-
-    # THE DYNAMIC PROMPT FIX:
+    # Inside rag_engine.py
     prompt = (
-        f"Context: {context_text}\n\n"
-        f"Task: Using ONLY the context provided above, provide a comprehensive technical answer to the question: '{question}'.\n\n"
-        f"Guidelines:\n"
-        f"1. Identify the primary subject and provide its definition if present.\n"
-        f"2. Detail all relevant components, steps, or features described in the context.\n"
-        f"3. Explain the purpose or function of the subject based strictly on the text.\n"
-        f"4. Maintain technical accuracy and use the exact keywords found in the context.\n"
-        f"5. If the information is not in the context, strictly state: 'I cannot find the details for this in the provided documents.'\n\n"
-        f"Answer:"
+        f"SOURCE DATA:\n{context_text}\n\n"
+        f"INSTRUCTION: Answer '{question}' by copying the sentences EXACTLY as they appear "
+        f"in the SOURCE DATA above. \n"
+        f"1. DO NOT change any words. \n"
+        f"2. DO NOT use your own knowledge. \n"
+        f"3. If you cannot find the exact sentence, say 'Not in slides.'\n\n"
+        f"Exact Technical Answer:"
     )
     
     answer = call_llm(prompt)
@@ -91,4 +88,5 @@ def generate_answer(question, mode, memory=None, strict=True, user_id=None):
         "raw_retrieval": cleaned_retrieval,
         "chunks": cleaned_retrieval
     }
+
 
