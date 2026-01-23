@@ -63,15 +63,15 @@ def generate_answer(question, mode, memory=None, strict=True, user_id=None):
 
     context_text = truncate_docs(docs)
     
-    # YOUR EXACT PROMPT (Keep this, it's correct for forcing exact matches)
     prompt = (
         f"SOURCE DATA:\n{context_text}\n\n"
-        f"INSTRUCTION: Answer '{question}' by copying the sentences EXACTLY as they appear "
-        f"in the SOURCE DATA above. \n"
-        f"1. DO NOT change any words. \n"
-        f"2. DO NOT use your own knowledge. \n"
-        f"3. If you cannot find the exact sentence, say 'Not in slides.'\n\n"
-        f"Exact Technical Answer:"
+        f"USER QUESTION: {question}\n\n"
+        f"STRICT INSTRUCTION:\n"
+        f"1. Extract ONLY the information that directly answers the USER QUESTION.\n"
+        f"2. DISCARD any text from the SOURCE DATA that is not relevant to the question.\n"
+        f"3. Copy the relevant sentences EXACTLY as they appear.\n"
+        f"4. If the data is not relevant, do not include it in your response.\n\n"
+        f"Focused Technical Answer:"
     )
     
     answer = call_llm(prompt)
@@ -93,3 +93,4 @@ def generate_answer(question, mode, memory=None, strict=True, user_id=None):
         "raw_retrieval": raw_chunks, # Pass raw text
         "chunks": raw_chunks        # Pass raw text
     }
+
