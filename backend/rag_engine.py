@@ -64,16 +64,18 @@ def generate_answer(question, mode, memory=None, strict=True, user_id=None):
 
     context_text = truncate_docs(docs)
     
-    # THE STRICT LANGCHAIN PROMPT:
+
+    # THE DYNAMIC PROMPT FIX:
     prompt = (
-        f"SYSTEM: You are a strict document assistant. Use ONLY the following context to answer.\n"
-        f"CONTEXT: {context_text}\n"
-        f"RULES:\n"
-        f"1. Answer ONLY using the context above.\n"
-        f"2. If the answer is not in the context, say 'I cannot find this in the notes.'\n"
-        f"3. Maintain exact technical terms (e.g., 'SRGAN', 'G(Z)').\n"
-        f"USER QUESTION: {question}\n"
-        f"STRICT ANSWER:"
+        f"Context: {context_text}\n\n"
+        f"Task: Using ONLY the context provided above, provide a comprehensive technical answer to the question: '{question}'.\n\n"
+        f"Guidelines:\n"
+        f"1. Identify the primary subject and provide its definition if present.\n"
+        f"2. Detail all relevant components, steps, or features described in the context.\n"
+        f"3. Explain the purpose or function of the subject based strictly on the text.\n"
+        f"4. Maintain technical accuracy and use the exact keywords found in the context.\n"
+        f"5. If the information is not in the context, strictly state: 'I cannot find the details for this in the provided documents.'\n\n"
+        f"Answer:"
     )
     
     answer = call_llm(prompt)
@@ -89,3 +91,4 @@ def generate_answer(question, mode, memory=None, strict=True, user_id=None):
         "raw_retrieval": cleaned_retrieval,
         "chunks": cleaned_retrieval
     }
+
