@@ -56,6 +56,7 @@ def extract_grounded_spans(answer, docs, threshold=0.8):
 
 def generate_answer(question, mode, memory=None, strict=True, user_id=None): 
     retriever = get_retriever()
+    # 1. Retrieval
     docs = retriever.invoke(question) if retriever else []
 
     if not docs:
@@ -63,34 +64,51 @@ def generate_answer(question, mode, memory=None, strict=True, user_id=None):
 
     context_text = truncate_docs(docs)
     
+    # 2. THE RELEVANCY FILTER PROMPT: Explicitly forbids unrelated topics
+    # This prevents the bot from 'vomiting' the whole PPTX
     prompt = (
         f"SOURCE DATA:\n{context_text}\n\n"
         f"USER QUESTION: {question}\n\n"
         f"STRICT INSTRUCTION:\n"
-        f"1. Extract ONLY the information that directly answers the USER QUESTION.\n"
-        f"2. DISCARD any text from the SOURCE DATA that is not relevant to the question.\n"
-        f"3. Copy the relevant sentences EXACTLY as they appear.\n"
-        f"4. If the data is not relevant, do not include it in your response.\n\n"
-        f"Focused Technical Answer:"
+        f"1. Extract ONLY information that directly answers: '{question}'.\n"
+        f"2. IMMEDIATELY DISCARD any text about unrelated history, authors, or general background "
+        f"unless specifically asked for.\n"
+        f"3. Copy the relevant sentences EXACTLY as they appear. Do not paraphrase.\n"
+        f"4. If no part of the SOURCE DATA is relevant to the question, say 'Not found in slides.'\n\n"
+        f"Focused Technical Answer (Exact Quotes Only):"
     )
     
     answer = call_llm(prompt)
+
+    # 3. LOGIC CHECK: Auto-reduction of unrelated topics
+    # If the LLM still includes too much, we filter by keyword relevance to the question
+    sentences = re.split(r'(?<=[.!?])\s+', answer.strip())
+    q_keywords = [w.lower() for w in question.split() if len(w) > 3]
     
-    # THE FIX: Do not use .split().join() here. 
-    # Keep the original raw text so App.js can find the newlines.
+    # Filter: Keep a sentence only if it shares keywords with the question 
+    # OR is part of a direct technical definition.
+    filtered_sentences = []
+    for s in sentences:
+        if any(kw in s.lower() for kw in q_keywords) or len(filtered_sentences) < 2:
+            filtered_sentences.append(s)
+    
+    final_text = " ".join(filtered_sentences)
+    
+    # 4. Return raw chunks for frontend highlighting sync
     raw_chunks = [d.page_content for d in docs]
 
     return {
-        "text": answer.strip(),
+        "text": final_text,
         "confidence": compute_confidence(docs),
-        "coverage": compute_coverage(docs, answer),
+        "coverage": compute_coverage(docs, final_text),
         "sources": [
             {
                 "source": os.path.basename(d.metadata.get("source", "Doc")), 
                 "page": d.metadata.get("page", "?")
             } for d in docs
         ],
-        "raw_retrieval": raw_chunks, # Pass raw text
-        "chunks": raw_chunks        # Pass raw text
+        "raw_retrieval": raw_chunks,
+        "chunks": raw_chunks 
     }
+    
 
