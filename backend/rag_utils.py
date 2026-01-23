@@ -81,41 +81,28 @@ def compute_coverage(docs, answer=None, threshold=85):
     if not docs or not answer:
         return {"grounded": 0, "general": 100}
 
-    # SHADOW NORMALIZATION: Removes HTML and artifacts
+    # Clean the answer by removing HTML tags first
     clean_answer = re.sub(r'<[^>]*>', '', answer)
     clean_answer = re.sub(r'[*_`#‹›()窶]', '', clean_answer).lower()
-    clean_answer = " ".join(clean_answer.split())
 
-    # Ensure doc_segments are clean for matching
+    # Extract full technical segments from the PPTX
     all_doc_content = "\n".join([d.page_content for d in docs])
-    doc_segments = [s.strip().lower() for s in all_doc_content.split('\n') if len(s.strip()) > 10]
+    doc_segments = [s.strip().lower() for s in all_doc_content.split('\n') if len(s.strip()) > 12]
     doc_segments = list(set([re.sub(r'[*_`#‹›()窶]', '', s) for s in doc_segments]))
-    
-    if not doc_segments:
-        return {"grounded": 0, "general": 100}
 
-    # 3. MATCHING LOGIC: Does the technical fact from the slide exist in the AI's answer?
     grounded_points = 0
-    total_segments_checked = 0
+    total_checked = 0
 
     for segment in doc_segments:
-        # We only check segments that the AI actually tried to talk about
-        # This prevents the score from being lowered by irrelevant slides
-        keywords = segment.split()[:3] # Check first few words
-        if any(kw in clean_answer for kw in keywords):
-            total_segments_checked += 1
-            # Use fuzzy matching for the full technical fact
+        # If the AI mentions the topic of the segment
+        if any(word in clean_answer for word in segment.split()[:3]):
+            total_checked += 1
+            # Use fuzzy matching for the whole technical sentence
             if segment in clean_answer or fuzz.partial_ratio(segment, clean_answer) >= threshold:
                 grounded_points += 1
 
-    if total_segments_checked == 0:
-        return {"grounded": 0, "general": 100}
-
-    grounded_pct = int((grounded_points / total_segments_checked) * 100)
-    
-    # Cap the groundedness to ensure it doesn't exceed 100
-    grounded_pct = min(100, grounded_pct)
-    
+    if total_checked == 0: return {"grounded": 0, "general": 100}
+    grounded_pct = min(100, int((grounded_points / total_checked) * 100))
     return {"grounded": grounded_pct, "general": 100 - grounded_pct}
 
 
