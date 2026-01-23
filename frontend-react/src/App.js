@@ -46,34 +46,48 @@ function highlightSources(answer, chunks) {
   if (!chunks || chunks.length === 0) return answer.replace(/\n/g, "<br/>");
 
   let safe = answer;
+  // Convert markdown bold first so we know where the tags are
   safe = convertMarkdownBold(safe); 
 
-  const clean = (text) => text.toLowerCase().replace(/[*_`#‹›()窶]/g, "").replace(/\s+/g, " ").trim();
+  // Function to strip ALL formatting and artifacts for a pure text comparison
+  const deepClean = (text) => 
+    text.toLowerCase()
+        .replace(/<[^>]*>/g, "") // Remove HTML tags like <strong> or <mark>
+        .replace(/[*_`#‹›()窶]/g, "") 
+        .replace(/\s+/g, " ")
+        .trim();
 
-  // Extract all technical phrases from the LangChain retrieved chunks
-  let technicalKeywords = [];
+  let technicalTerms = [];
   chunks.forEach(chunk => {
-    const phrases = chunk.split(/[.!?\n\-:]+/);
-    technicalKeywords.push(...phrases);
+    if (chunk) {
+      // Split technical facts into smaller, matchable phrases
+      const phrases = chunk.split(/[.!?\n\-:]+/);
+      technicalTerms.push(...phrases);
+    }
   });
 
-  // Sort by length (longest first) to prevent short words from breaking long phrases
-  const uniqueKeywords = [...new Set(technicalKeywords)]
+  const uniqueKeywords = [...new Set(technicalTerms)]
     .map(t => t.trim())
-    .filter(t => t.length > 4)
-    .sort((a, b) => b.length - a.length);
+    .filter(t => t.length > 5); // Focus on technical phrases
 
-  uniqueKeywords.forEach(keyword => {
-    const normalized = clean(keyword);
-    // Regex that allows for minor spacing/punctuation differences
-    const regexPattern = normalized.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "[\\s\\W]*?");
+  // Sort longest first to prioritize phrases over individual words
+  uniqueKeywords.sort((a, b) => b.length - a.length).forEach(keyword => {
+    const normalizedKeyword = deepClean(keyword);
+    if (normalizedKeyword.length < 5) return;
+
+    // Wildcard regex to find keywords even if separated by bold tags or newlines
+    const regexPattern = normalizedKeyword
+      .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+      .split(" ")
+      .join("[\\s\\W\\(<[^>]*>)]*?");
 
     try {
       const regex = new RegExp(`(${regexPattern})`, "gi");
       const style = `background-color: rgba(37, 99, 235, 0.2); border-bottom: 2px solid #3b82f6; font-weight: bold;`;
       
+      // We search the 'safe' string which now has <strong> tags
       if (new RegExp(regexPattern, "i").test(safe) && !safe.includes(style)) {
-        safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
+          safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
       }
     } catch (e) {}
   });
