@@ -171,7 +171,7 @@ def ask():
     q = data.get("question", "").strip()
     mode = data.get("mode", "Detailed")
     memory = data.get("memory", [])
-    strict = data.get("strict", False)
+    strict = data.get("strict", True)
 
     if not q:
         return jsonify({"error": "Question is required"}), 400
@@ -499,6 +499,7 @@ def debug_raw_docs():
         
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
