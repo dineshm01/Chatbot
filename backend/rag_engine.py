@@ -19,25 +19,27 @@ db = client["chatbot"]
 raw_docs = db["raw_docs"]
 
 
-RAG_GUIDE_TEMPLATE = """
-TECHNICAL SOURCE DATA:
+# Define the template to enforce structural integrity
+RAG_HIERARCHY_TEMPLATE = """
+TECHNICAL CONTEXT FROM SLIDES:
 {context_text}
 
-USER QUERY: 
+USER QUESTION: 
 {question}
 
 STRICT ARCHITECTURAL RULES:
-1. Copy technical definitions exactly. Do not summarize or paraphrase.
-2. Maintain the original document hierarchy. Do not combine facts from different slides into a single sentence.
-3. If the query asks for 'Types', list them as distinct sections based on the slide titles (e.g., DCGAN, SRGAN, Cycle GAN).
-4. For components (Generator/Discriminator), list their specific functions exactly as bulleted in the source.
+1. Copy technical facts exactly. Do not rephrase or summarize.
+2. Maintain Slide-Level Isolation: Do not combine facts from separate slides into a single sentence.
+3. If a slide has a heading (e.g., 'Cycle GAN'), provide its information only under that specific heading.
+4. Do not create introductory summary sentences (e.g., 'There are two GANs') unless they exist as a literal bullet point in the slides.
 
-Technical Answer:
+Technical Fact-Based Answer:
 """.strip()
 
+# Initialize the template object
 rag_prompt = PromptTemplate(
     input_variables=["context_text", "question"],
-    template=RAG_GUIDE_TEMPLATE
+    template=RAG_HIERARCHY_TEMPLATE
 )
 
 def docs_are_relevant(question, docs, threshold=30):
@@ -124,6 +126,7 @@ def generate_answer(question, mode, memory=None, strict=True, user_id=None):
         "chunks": raw_chunks 
     }
     
+
 
 
 
