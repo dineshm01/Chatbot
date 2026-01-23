@@ -61,41 +61,50 @@ def compute_confidence(docs):
     # 3. Low Confidence: Stray keywords found but insufficient for a full technical answer
     return "🔵 Confidence: Limited context available"
 
-def compute_coverage(docs, answer=None, threshold=80):
+def compute_coverage(docs, answer=None, threshold=85):
     """
-    Calculates groundedness using Shadow Normalization to match frontend highlights.
+    SYNCED LOGIC: Uses sliding window matching to align perfectly 
+    with the frontend 'Deep Search' highlighter.
     """
     if not docs or not answer:
         return {"grounded": 0, "general": 100}
 
-    # 1. SHADOW NORMALIZATION for the Answer (Removes HTML tags and symbols)
-    # This prevents markdown bolding (**word**) from breaking the match
-    shadow_answer = re.sub(r'<[^>]*>', '', answer) # Remove HTML tags
-    shadow_answer = shadow_answer.lower()
-    shadow_answer = re.sub(r'[*_`#‹›()窶]', '', shadow_answer)
-    shadow_answer = " ".join(shadow_answer.split())
+    # 1. Clean the Answer (Remove HTML tags like <strong> and artifacts)
+    clean_answer = re.sub(r'<[^>]*>', '', answer)
+    clean_answer = re.sub(r'[*_`#‹›()窶]', '', clean_answer).lower()
+    clean_answer = " ".join(clean_answer.split())
 
-    # 2. SHADOW NORMALIZATION for the Documents
-    doc_text = " ".join([" ".join(d.page_content.split()) for d in docs]).lower()
-    doc_text = re.sub(r'[*_`#‹›()窶]', '', doc_text)
+    # 2. Get technical segments from slides (Longer segments only)
+    # We split by newlines to get full technical facts from the PPTX
+    all_doc_content = "\n".join([d.page_content for d in docs])
+    doc_segments = [s.strip().lower() for s in all_doc_content.split('\n') if len(s.strip()) > 10]
+    
+    # Remove duplicates and artifacts from segments
+    doc_segments = list(set([re.sub(r'[*_`#‹›()窶]', '', s) for s in doc_segments]))
 
-    # 3. Extract technical fragments from the cleaned shadow answer
-    # We split by punctuation and filler words
-    sentences = re.split(r'[.!?\n\-:,;]|\b(?:is|are|was|were|the|an|a|to|for|with|from)\b', shadow_answer, flags=re.IGNORECASE)
-    fragments = [s.strip() for s in sentences if len(s.strip()) > 8 and len(s.strip().split()) >= 2]
-
-    if not fragments:
+    if not doc_segments:
         return {"grounded": 0, "general": 100}
 
-    grounded_count = 0
-    for frag in fragments:
-        clean_frag = " ".join(frag.split())
-        # FIX: Check if the fragment exists in the normalized source text
-        if clean_frag in doc_text or fuzz.partial_ratio(clean_frag, doc_text) >= threshold:
-            grounded_count += 1
+    # 3. MATCHING LOGIC: Does the technical fact from the slide exist in the AI's answer?
+    grounded_points = 0
+    total_segments_checked = 0
 
-    grounded_pct = int((grounded_count / len(fragments)) * 100)
+    for segment in doc_segments:
+        # We only check segments that the AI actually tried to talk about
+        # This prevents the score from being lowered by irrelevant slides
+        keywords = segment.split()[:3] # Check first few words
+        if any(kw in clean_answer for kw in keywords):
+            total_segments_checked += 1
+            # Use fuzzy matching for the full technical fact
+            if segment in clean_answer or fuzz.partial_ratio(segment, clean_answer) >= threshold:
+                grounded_points += 1
+
+    if total_segments_checked == 0:
+        return {"grounded": 0, "general": 100}
+
+    grounded_pct = int((grounded_points / total_segments_checked) * 100)
+    
+    # Cap the groundedness to ensure it doesn't exceed 100
+    grounded_pct = min(100, grounded_pct)
+    
     return {"grounded": grounded_pct, "general": 100 - grounded_pct}
-
-
-
