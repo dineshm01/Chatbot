@@ -77,11 +77,11 @@ function highlightSources(answer, chunks) {
     const target = clean(phrase);
     if (target.length < 10) return;
 
-    // We walk through every text node inside the HTML to find matches
+    // BUILD-SAFE TREE WALKER LOGIC
     const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT, null, false);
     const nodesToReplace = [];
 
-    let node = walker.nextNode();
+    let node = walker.nextNode(); // Assign outside the condition
     while (node) {
       const nodeText = node.nodeValue;
       const cleanNodeText = clean(nodeText);
@@ -89,8 +89,8 @@ function highlightSources(answer, chunks) {
       if (cleanNodeText.includes(target)) {
         nodesToReplace.push(node);
       }
-      node = walker.nextNode(); // Move to the next node inside the loop  
-    }  
+      node = walker.nextNode(); // Move to the next node inside the loop
+    }
 
     nodesToReplace.forEach(textNode => {
       const parent = textNode.parentNode;
