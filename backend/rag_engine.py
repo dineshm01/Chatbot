@@ -18,30 +18,6 @@ client = MongoClient(os.getenv("MONGO_URI"))
 db = client["chatbot"]
 raw_docs = db["raw_docs"]
 
-
-# In backend/rag_engine.py using a Dynamic Template
-RAG_RELEVANCY_TEMPLATE = """
-CONTEXT FROM SLIDES:
-{context_text}
-
-USER QUESTION: 
-{question}
-
-STRICT QUALITY RULES:
-1. Extract ONLY the specific "Types" or "Architectures" mentioned in the slides.
-2. DISCARD general definitions, history, or author names (like Ian Goodfellow) if they don't answer the question.
-3. For each type found, list its name and one exact technical sentence from that specific slide.
-4. If a slide is not about a 'type', ignore it completely.
-
-Focused Technical Answer:
-""".strip()
-
-# 2. Initialize the PromptTemplate
-rag_prompt_custom = PromptTemplate(
-    input_variables=["context_text", "question"],
-    template=RAG_RELEVANCY_TEMPLATE
-)
-
 def docs_are_relevant(question, docs, threshold=30):
     if not docs:
         return False
@@ -78,59 +54,54 @@ def extract_grounded_spans(answer, docs, threshold=0.8):
 
     return grounded, [] # Returning empty list for second return value to keep it simple
 
+from langchain.prompts import PromptTemplate
+
+# Define a template that enforces "Full Document" analysis
+RAG_FULL_SCAN_TEMPLATE = """
+TECHNICAL CONTEXT FROM ALL RETRIEVED SLIDES:
+{context_text}
+
+USER QUESTION: 
+{question}
+
+STRICT EXTRACTION RULES:
+1. Do not stop at the first slide. Scan all provided CONTEXT for relevant facts.
+2. If the user asks for 'Types', you must look for every slide title that contains a GAN variation (e.g., DCGAN, SRGAN, Cycle GAN, InfoGAN).
+3. Copy the specific technical definitions for EACH type exactly as they appear in the slides.
+4. Provide a structured answer using bullet points for each different slide found.
+
+Focused Technical Answer:
+""".strip()
+
+rag_prompt_custom = PromptTemplate(
+    input_variables=["context_text", "question"],
+    template=RAG_FULL_SCAN_TEMPLATE
+)
+
 def generate_answer(question, mode, memory=None, strict=True, user_id=None): 
     retriever = get_retriever()
-    # 1. Retrieval
+    # Pulling more docs (k=15) ensures we reach the later pages of the PPTX
     docs = retriever.invoke(question) if retriever else []
 
     if not docs:
-        return {"text": "No relevant information found in the documents.", "chunks": []}
+        return {"text": "No information found.", "chunks": []}
 
     context_text = truncate_docs(docs)
     
-    # 3. DYNAMIC INJECTION: No hardcoded string inside the function
+    # Formatting the prompt with the wider context
     final_prompt = rag_prompt_custom.format(
         context_text=context_text,
         question=question
     )
     
     answer = call_llm(final_prompt)
-
-    # 3. LOGIC CHECK: Auto-reduction of unrelated topics
-    # If the LLM still includes too much, we filter by keyword relevance to the question
-    sentences = re.split(r'(?<=[.!?])\s+', answer.strip())
-    q_keywords = [w.lower() for w in question.split() if len(w) > 3]
-    
-    # Filter: Keep a sentence only if it shares keywords with the question 
-    # OR is part of a direct technical definition.
-    filtered_sentences = []
-    for s in sentences:
-        if any(kw in s.lower() for kw in q_keywords) or len(filtered_sentences) < 2:
-            filtered_sentences.append(s)
-    
-    final_text = " ".join(filtered_sentences)
-    
-    # 4. Return raw chunks for frontend highlighting sync
     raw_chunks = [d.page_content for d in docs]
 
     return {
-        "text": final_text,
+        "text": answer.strip(),
+        "chunks": raw_chunks,
+        "coverage": compute_coverage(docs, answer),
         "confidence": compute_confidence(docs),
-        "coverage": compute_coverage(docs, final_text),
-        "sources": [
-            {
-                "source": os.path.basename(d.metadata.get("source", "Doc")), 
-                "page": d.metadata.get("page", "?")
-            } for d in docs
-        ],
-        "raw_retrieval": raw_chunks,
-        "chunks": raw_chunks 
-    }
-    
-
-
-
-
-
-
-
+        "sources": [{"source": os.path.basename(d.metadata.get("source", "Doc")), 
+                     "page": d.metadata.get("page", "?")} for d in docs]
+    }    
