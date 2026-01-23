@@ -1,4 +1,5 @@
 import os
+import io
 import pytesseract
 from PIL import Image
 from pptx import Presentation
@@ -28,27 +29,55 @@ def load_file(file_path):
     else:
         raise ValueError(f"Unsupported file type: {ext}")
 
+
 def load_pptx_with_pages(file_path):
     """
-    Custom PPTX loader that strictly captures slide numbers for the UI.
+    ADVANCED LOADER: Captures slide numbers AND extracts text from 
+    embedded images/diagrams via OCR.
     """
     prs = Presentation(file_path)
     documents = []
+    
     for i, slide in enumerate(prs.slides):
-        text_runs = []
-        for shape in slide.shapes:
-            if hasattr(shape, "text"):
-                text_runs.append(shape.text)
+        combined_text = []
         
-        content = "\n".join(text_runs)
+        for shape in slide.shapes:
+            # 1. Capture standard text boxes
+            if hasattr(shape, "text"):
+                combined_text.append(shape.text)
+            
+            # 2. THE FIX: Capture text inside images/diagrams
+            # (Checking for PICTURE or GRAPHIC_FRAME types)
+            elif shape.shape_type == 13: # 13 is the constant for a Picture
+                try:
+                    image_bytes = shape.image.blob
+                    # Create a temporary in-memory file for your OCR function
+                    image_stream = io.BytesIO(image_bytes)
+                    
+                    # Run your existing OCR logic on the embedded image
+                    image_doc = load_image_with_ocr_from_stream(image_stream)
+                    if image_doc[0].page_content.strip():
+                        combined_text.append(f"[Image Content: {image_doc[0].page_content}]")
+                except Exception as e:
+                    print(f"DEBUG: Failed to OCR image on slide {i+1}: {e}")
+
+        content = "\n".join(combined_text)
         if content.strip():
-            # This 'page' metadata is what the frontend looks for
             documents.append(Document(
                 page_content=content,
                 metadata={"source": file_path, "page": i + 1}
             ))
     return documents
 
+def load_image_with_ocr_from_stream(image_stream):
+    try:
+        image = Image.open(image_stream).convert("L")
+        image = image.point(lambda x: 0 if x < 140 else 255, '1')
+        text = pytesseract.image_to_string(image, config="--psm 6")
+        return [Document(page_content=text)]
+    except:
+        return [Document(page_content="")]
+        
 def load_image_with_ocr(image_path):
     if os.path.getsize(image_path) > 3_000_000:
         return [Document(page_content="", metadata={"source": image_path, "type": "image", "ocr_confidence": 0.0})]
@@ -77,4 +106,5 @@ def estimate_ocr_confidence(text):
         return 0.5
     else:
         return 0.8
+
 
