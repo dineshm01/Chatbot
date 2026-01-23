@@ -43,7 +43,8 @@ def get_retriever():
         return None
     return vectorstore.as_retriever(
         search_kwargs={
-            "k": 5 # Reduced from 20 to stop 'stuffing' the answer with irrelevant slides
+            "k": 15 , # Reduced from 20 to stop 'stuffing' the answer with irrelevant slides
+            "fetch_k": 30
         }
     )
     
@@ -107,5 +108,6 @@ def compute_coverage(docs, answer=None, threshold=80):
 
     grounded_pct = int((grounded_count / len(fragments)) * 100)
     return {"grounded": grounded_pct, "general": 100 - grounded_pct}
+
 
 
