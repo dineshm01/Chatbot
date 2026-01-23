@@ -48,54 +48,64 @@ function convertMarkdownBold(text) {
 function highlightSources(answer, chunks) {
   if (!chunks || chunks.length === 0) return answer.replace(/\n/g, "<br/>");
 
-  let safe = answer;
-  // Convert markdown bold first so we know where the tags are
-  safe = convertMarkdownBold(safe); 
+  // 1. First, apply bolding
+  let html = convertMarkdownBold(answer);
 
-  // Function to strip ALL formatting and artifacts for a pure text comparison
-  const deepClean = (text) => 
-    text.toLowerCase()
-        .replace(/<[^>]*>/g, "") // Remove HTML tags like <strong> or <mark>
-        .replace(/[*_`#‹›()窶]/g, "") 
-        .replace(/\s+/g, " ")
-        .trim();
+  // 2. Deep clean function for matching
+  const clean = (text) => 
+    text.toLowerCase().replace(/[*_`#‹›()窶]/g, "").replace(/\s+/g, " ").trim();
 
-  let technicalTerms = [];
-  chunks.forEach(chunk => {
-    if (chunk) {
-      // Split technical facts into smaller, matchable phrases
-      const phrases = chunk.split(/[.!?\n\-:]+/);
-      technicalTerms.push(...phrases);
-    }
+  // 3. Get technical sentences from chunks (Longest first)
+  let phrases = [];
+  chunks.forEach(c => {
+    if (c) phrases.push(...c.split('\n'));
   });
+  
+  const sortedPhrases = [...new Set(phrases)]
+    .map(p => p.trim())
+    .filter(p => p.length > 10) // Only technical sentences
+    .sort((a, b) => b.length - a.length);
 
-  const uniqueKeywords = [...new Set(technicalTerms)]
-    .map(t => t.trim())
-    .filter(t => t.length > 5); // Focus on technical phrases
+  // 4. THE REAL NEW METHOD: DOM-safe replacement
+  // We use a temporary container to process text nodes only
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = html;
 
-  // Sort longest first to prioritize phrases over individual words
-  uniqueKeywords.sort((a, b) => b.length - a.length).forEach(keyword => {
-    const normalizedKeyword = deepClean(keyword);
-    if (normalizedKeyword.length < 5) return;
+  const style = "background-color: rgba(37, 99, 235, 0.2); border-bottom: 2px solid #3b82f6; font-weight: bold;";
 
-    // Wildcard regex to find keywords even if separated by bold tags or newlines
-    const regexPattern = normalizedKeyword
-      .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-      .split(" ")
-      .join("[\\s\\W\\(<[^>]*>)]*?");
+  sortedPhrases.forEach(phrase => {
+    const target = clean(phrase);
+    if (target.length < 10) return;
 
-    try {
-      const regex = new RegExp(`(${regexPattern})`, "gi");
-      const style = `background-color: rgba(37, 99, 235, 0.2); border-bottom: 2px solid #3b82f6; font-weight: bold;`;
+    // We walk through every text node inside the HTML to find matches
+    const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT, null, false);
+    let node;
+    const nodesToReplace = [];
+
+    while (node = walker.nextNode()) {
+      const nodeText = node.nodeValue;
+      const cleanNodeText = clean(nodeText);
       
-      // We search the 'safe' string which now has <strong> tags
-      if (new RegExp(regexPattern, "i").test(safe) && !safe.includes(style)) {
-          safe = safe.replace(regex, `<mark style="${style}">$1</mark>`);
+      if (cleanNodeText.includes(target)) {
+        nodesToReplace.push(node);
       }
-    } catch (e) {}
+    }
+
+    nodesToReplace.forEach(textNode => {
+      const parent = textNode.parentNode;
+      if (parent.tagName === "MARK") return; // Skip if already highlighted
+
+      // Create a regex for the specific phrase that ignores whitespace
+      const regex = new RegExp(`(${target.replace(/\s+/g, '[\\s\\W]+')})`, "gi");
+      const newHTML = textNode.nodeValue.replace(regex, `<mark style="${style}">$1</mark>`);
+      
+      const newSpan = document.createElement("span");
+      newSpan.innerHTML = newHTML;
+      parent.replaceChild(newSpan, textNode);
+    });
   });
 
-  return safe.replace(/\n/g, "<br/>");
+  return tempDiv.innerHTML.replace(/\n/g, "<br/>");
 }
   
 async function sendFeedback(messageId, feedback) {
