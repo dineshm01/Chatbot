@@ -55,10 +55,13 @@ function highlightSources(answer, chunks) {
   const clean = (text) => 
     text.toLowerCase().replace(/[*_`#‹›()窶]/g, "").replace(/\s+/g, " ").trim();
 
-  // 3. Get full technical sentences from slides (Longest first)
   let phrases = [];
   chunks.forEach(c => {
-    if (c) phrases.push(...c.split('\n')); // Split ONLY by newlines to keep sentences whole
+    if (c) {
+      // FIX: Split by sentences and newlines to find more matchable fragments
+      const segments = c.split(/[.\n!?;]+/); 
+      phrases.push(...segments);
+    }
   });
   
   const sortedPhrases = [...new Set(phrases)]
