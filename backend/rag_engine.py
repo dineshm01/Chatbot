@@ -19,27 +19,27 @@ db = client["chatbot"]
 raw_docs = db["raw_docs"]
 
 
-# 1. Define the Template externally to avoid logic hardcoding
-RAG_STRUCTURE_TEMPLATE = """
-CONTEXT FROM TECHNICAL SLIDES:
+# In backend/rag_engine.py using a Dynamic Template
+RAG_RELEVANCY_TEMPLATE = """
+CONTEXT FROM SLIDES:
 {context_text}
 
 USER QUESTION: 
 {question}
 
-STRICT ARCHITECTURAL RULES:
-1. Copy technical facts EXACTLY. Do not rephrase or use your own knowledge.
-2. SLIDE ISOLATION: Do not combine facts from different slides into a single sentence.
-3. NO BRIDGE SENTENCES: Do not create introductory summaries like "There are two GANs" if that exact phrase is not in the bullets.
-4. BULLET-ONLY: If the context is a list of bullet points, your answer must remain a list of bullet points.
+STRICT QUALITY RULES:
+1. Extract ONLY the specific "Types" or "Architectures" mentioned in the slides.
+2. DISCARD general definitions, history, or author names (like Ian Goodfellow) if they don't answer the question.
+3. For each type found, list its name and one exact technical sentence from that specific slide.
+4. If a slide is not about a 'type', ignore it completely.
 
-Technical Fact-Based Answer:
+Focused Technical Answer:
 """.strip()
 
 # 2. Initialize the PromptTemplate
 rag_prompt_custom = PromptTemplate(
     input_variables=["context_text", "question"],
-    template=RAG_STRUCTURE_TEMPLATE
+    template=RAG_RELEVANCY_TEMPLATE
 )
 
 def docs_are_relevant(question, docs, threshold=30):
@@ -127,6 +127,7 @@ def generate_answer(question, mode, memory=None, strict=True, user_id=None):
         "chunks": raw_chunks 
     }
     
+
 
 
 
