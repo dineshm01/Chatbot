@@ -78,26 +78,19 @@ def compute_confidence(docs):
     return "🔵 Confidence: Limited context available"
 
 def compute_coverage(docs, answer=None, threshold=85):
-    """
-    SYNCED LOGIC: Uses sliding window matching to align perfectly 
-    with the frontend 'Deep Search' highlighter.
-    """
     if not docs or not answer:
         return {"grounded": 0, "general": 100}
 
-    # 1. Clean the Answer (Remove HTML tags like <strong> and artifacts)
+    # SHADOW NORMALIZATION: Removes HTML and artifacts
     clean_answer = re.sub(r'<[^>]*>', '', answer)
     clean_answer = re.sub(r'[*_`#‹›()窶]', '', clean_answer).lower()
     clean_answer = " ".join(clean_answer.split())
 
-    # 2. Get technical segments from slides (Longer segments only)
-    # We split by newlines to get full technical facts from the PPTX
+    # Ensure doc_segments are clean for matching
     all_doc_content = "\n".join([d.page_content for d in docs])
     doc_segments = [s.strip().lower() for s in all_doc_content.split('\n') if len(s.strip()) > 10]
-    
-    # Remove duplicates and artifacts from segments
     doc_segments = list(set([re.sub(r'[*_`#‹›()窶]', '', s) for s in doc_segments]))
-
+    
     if not doc_segments:
         return {"grounded": 0, "general": 100}
 
@@ -124,4 +117,5 @@ def compute_coverage(docs, answer=None, threshold=85):
     grounded_pct = min(100, grounded_pct)
     
     return {"grounded": grounded_pct, "general": 100 - grounded_pct}
+
 
