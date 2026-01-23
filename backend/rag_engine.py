@@ -19,27 +19,27 @@ db = client["chatbot"]
 raw_docs = db["raw_docs"]
 
 
-# Define the template to enforce structural integrity
-RAG_HIERARCHY_TEMPLATE = """
-TECHNICAL CONTEXT FROM SLIDES:
+# 1. Define the Template externally to avoid logic hardcoding
+RAG_STRUCTURE_TEMPLATE = """
+CONTEXT FROM TECHNICAL SLIDES:
 {context_text}
 
 USER QUESTION: 
 {question}
 
 STRICT ARCHITECTURAL RULES:
-1. Copy technical facts exactly. Do not rephrase or summarize.
-2. Maintain Slide-Level Isolation: Do not combine facts from separate slides into a single sentence.
-3. If a slide has a heading (e.g., 'Cycle GAN'), provide its information only under that specific heading.
-4. Do not create introductory summary sentences (e.g., 'There are two GANs') unless they exist as a literal bullet point in the slides.
+1. Copy technical facts EXACTLY. Do not rephrase or use your own knowledge.
+2. SLIDE ISOLATION: Do not combine facts from different slides into a single sentence.
+3. NO BRIDGE SENTENCES: Do not create introductory summaries like "There are two GANs" if that exact phrase is not in the bullets.
+4. BULLET-ONLY: If the context is a list of bullet points, your answer must remain a list of bullet points.
 
 Technical Fact-Based Answer:
 """.strip()
 
-# Initialize the template object
-rag_prompt = PromptTemplate(
+# 2. Initialize the PromptTemplate
+rag_prompt_custom = PromptTemplate(
     input_variables=["context_text", "question"],
-    template=RAG_HIERARCHY_TEMPLATE
+    template=RAG_STRUCTURE_TEMPLATE
 )
 
 def docs_are_relevant(question, docs, threshold=30):
@@ -88,12 +88,13 @@ def generate_answer(question, mode, memory=None, strict=True, user_id=None):
 
     context_text = truncate_docs(docs)
     
-    formatted_prompt = rag_prompt.format(
+    # 3. DYNAMIC INJECTION: No hardcoded string inside the function
+    final_prompt = rag_prompt_custom.format(
         context_text=context_text,
         question=question
     )
     
-    answer = call_llm(formatted_prompt)
+    answer = call_llm(final_prompt)
 
     # 3. LOGIC CHECK: Auto-reduction of unrelated topics
     # If the LLM still includes too much, we filter by keyword relevance to the question
@@ -126,6 +127,7 @@ def generate_answer(question, mode, memory=None, strict=True, user_id=None):
         "chunks": raw_chunks 
     }
     
+
 
 
 
