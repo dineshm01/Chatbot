@@ -56,7 +56,6 @@ def extract_grounded_spans(answer, docs, threshold=0.8):
 
 def generate_answer(question, mode, memory=None, strict=True, user_id=None): 
     retriever = get_retriever()
-    # LANGCHAIN STEP: Retrieval
     docs = retriever.invoke(question) if retriever else []
 
     if not docs:
@@ -64,7 +63,7 @@ def generate_answer(question, mode, memory=None, strict=True, user_id=None):
 
     context_text = truncate_docs(docs)
     
-    # Inside rag_engine.py
+    # YOUR EXACT PROMPT (Keep this, it's correct for forcing exact matches)
     prompt = (
         f"SOURCE DATA:\n{context_text}\n\n"
         f"INSTRUCTION: Answer '{question}' by copying the sentences EXACTLY as they appear "
@@ -77,16 +76,20 @@ def generate_answer(question, mode, memory=None, strict=True, user_id=None):
     
     answer = call_llm(prompt)
     
-    # Synchronize cleaned chunks for the frontend highlighter
-    cleaned_retrieval = [" ".join(d.page_content.split()) for d in docs]
+    # THE FIX: Do not use .split().join() here. 
+    # Keep the original raw text so App.js can find the newlines.
+    raw_chunks = [d.page_content for d in docs]
 
     return {
         "text": answer.strip(),
         "confidence": compute_confidence(docs),
         "coverage": compute_coverage(docs, answer),
-        "sources": [{"source": os.path.basename(d.metadata.get("source", "Doc")), "page": d.metadata.get("page", "?")} for d in docs[:3]],
-        "raw_retrieval": cleaned_retrieval,
-        "chunks": cleaned_retrieval
+        "sources": [
+            {
+                "source": os.path.basename(d.metadata.get("source", "Doc")), 
+                "page": d.metadata.get("page", "?")
+            } for d in docs
+        ],
+        "raw_retrieval": raw_chunks, # Pass raw text
+        "chunks": raw_chunks        # Pass raw text
     }
-
-
