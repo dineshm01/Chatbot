@@ -96,7 +96,7 @@ def generate_answer(question, mode, memory=None, strict=True, user_id=None):
         question=question
     )
     
-    answer = call_llm(prompt)
+    answer = call_llm(final_prompt)
 
     # 3. LOGIC CHECK: Auto-reduction of unrelated topics
     # If the LLM still includes too much, we filter by keyword relevance to the question
@@ -129,5 +129,6 @@ def generate_answer(question, mode, memory=None, strict=True, user_id=None):
         "chunks": raw_chunks 
     }
     
+
 
 
