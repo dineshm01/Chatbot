@@ -9,18 +9,34 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 VECTOR_DIR = os.path.join(BASE_DIR, "vectorstore")
 
 def load_vectorstore():
+    """
+    STRICT VOLUME LOAD: Ensures the FAISS index is read from the 
+    Railway persistent mount point to prevent data loss.
+    """
+    # Force absolute path verification
+    if not os.path.isabs(VECTOR_DIR):
+        abs_vector_dir = os.path.abspath(VECTOR_DIR)
+    else:
+        abs_vector_dir = VECTOR_DIR
+
+    index_file = os.path.join(abs_vector_dir, "index.faiss")
+    
     # Check if the index exists on the persistent disk
-    index_file = os.path.join(VECTOR_DIR, "index.faiss")
     if not os.path.exists(index_file):
-        print(f"DEBUG: No index found at {index_file}")
+        print(f"CRITICAL ERROR: No FAISS index found at {index_file}")
+        # Return None so the system knows to prompt for a document upload
         return None
 
-    return FAISS.load_local(
-        VECTOR_DIR,
-        get_embeddings(),
-        allow_dangerous_deserialization=True
-    )
-
+    try:
+        return FAISS.load_local(
+            abs_vector_dir,
+            get_embeddings(),
+            allow_dangerous_deserialization=True
+        )
+    except Exception as e:
+        print(f"LOAD FAILED: {str(e)}")
+        return None
+        
 def get_retriever():
     vectorstore = load_vectorstore()
     if not vectorstore:
@@ -108,3 +124,4 @@ def compute_coverage(docs, answer=None, threshold=85):
     grounded_pct = min(100, grounded_pct)
     
     return {"grounded": grounded_pct, "general": 100 - grounded_pct}
+
