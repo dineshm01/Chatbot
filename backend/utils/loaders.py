@@ -1,7 +1,7 @@
 import os
 import pytesseract
 from PIL import Image
-
+from pptx import Presentation
 from langchain_core.documents import Document
 from langchain_community.document_loaders import (
     PyPDFLoader,
@@ -22,11 +22,32 @@ def load_file(file_path):
     elif ext == ".docx":
         return Docx2txtLoader(file_path).load()
     elif ext in [".ppt", ".pptx"]:
-        return UnstructuredPowerPointLoader(file_path).load()
+        return load_pptx_with_pages(file_path)
     elif ext in [".png", ".jpg", ".jpeg"]:
         return load_image_with_ocr(file_path)
     else:
         raise ValueError(f"Unsupported file type: {ext}")
+
+def load_pptx_with_pages(file_path):
+    """
+    Custom PPTX loader that strictly captures slide numbers for the UI.
+    """
+    prs = Presentation(file_path)
+    documents = []
+    for i, slide in enumerate(prs.slides):
+        text_runs = []
+        for shape in slide.shapes:
+            if hasattr(shape, "text"):
+                text_runs.append(shape.text)
+        
+        content = "\n".join(text_runs)
+        if content.strip():
+            # This 'page' metadata is what the frontend looks for
+            documents.append(Document(
+                page_content=content,
+                metadata={"source": file_path, "page": i + 1}
+            ))
+    return documents
 
 def load_image_with_ocr(image_path):
     if os.path.getsize(image_path) > 3_000_000:
@@ -56,3 +77,4 @@ def estimate_ocr_confidence(text):
         return 0.5
     else:
         return 0.8
+
