@@ -48,55 +48,49 @@ function convertMarkdownBold(text) {
 function highlightSources(answer, chunks) {
   if (!chunks || chunks.length === 0) return answer.replace(/\n/g, "<br/>");
 
-  // 1. First, apply bolding
+  // 1. Apply bolding first
   let html = convertMarkdownBold(answer);
 
-  // 2. Deep clean function for matching
+  // 2. Cleaning helper for matching
   const clean = (text) => 
     text.toLowerCase().replace(/[*_`#‹›()窶]/g, "").replace(/\s+/g, " ").trim();
 
-  // 3. Get technical sentences from chunks (Longest first)
+  // 3. Get full technical sentences from slides (Longest first)
   let phrases = [];
   chunks.forEach(c => {
-    if (c) phrases.push(...c.split('\n'));
+    if (c) phrases.push(...c.split('\n')); // Split ONLY by newlines to keep sentences whole
   });
   
   const sortedPhrases = [...new Set(phrases)]
     .map(p => p.trim())
-    .filter(p => p.length > 10) // Only technical sentences
+    .filter(p => p.length > 12) // Focus on full technical facts
     .sort((a, b) => b.length - a.length);
 
-  // 4. THE REAL NEW METHOD: DOM-safe replacement
-  // We use a temporary container to process text nodes only
   const tempDiv = document.createElement("div");
   tempDiv.innerHTML = html;
-
   const style = "background-color: rgba(37, 99, 235, 0.2); border-bottom: 2px solid #3b82f6; font-weight: bold;";
 
   sortedPhrases.forEach(phrase => {
     const target = clean(phrase);
-    if (target.length < 10) return;
+    if (target.length < 12) return;
 
-    // BUILD-SAFE TREE WALKER LOGIC
+    // 4. THE FIX: Process only text nodes so bolding doesn't break the match
     const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT, null, false);
     const nodesToReplace = [];
 
-    let node = walker.nextNode(); // Assign outside the condition
+    let node = walker.nextNode();
     while (node) {
-      const nodeText = node.nodeValue;
-      const cleanNodeText = clean(nodeText);
-  
-      if (cleanNodeText.includes(target)) {
+      if (clean(node.nodeValue).includes(target)) {
         nodesToReplace.push(node);
       }
-      node = walker.nextNode(); // Move to the next node inside the loop
+      node = walker.nextNode();
     }
 
     nodesToReplace.forEach(textNode => {
       const parent = textNode.parentNode;
-      if (parent.tagName === "MARK") return; // Skip if already highlighted
+      if (parent.tagName === "MARK") return; 
 
-      // Create a regex for the specific phrase that ignores whitespace
+      // Regex that allows for minor spacing differences
       const regex = new RegExp(`(${target.replace(/\s+/g, '[\\s\\W]+')})`, "gi");
       const newHTML = textNode.nodeValue.replace(regex, `<mark style="${style}">$1</mark>`);
       
