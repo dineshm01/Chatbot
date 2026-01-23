@@ -39,9 +39,12 @@ async function loadAnalytics() {
 }
   
 function convertMarkdownBold(text) {
-  return text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  if (!text) return "";
+  // THE FIX: We use a non-greedy match to ensure that bolding 
+  // is applied cleanly before the highlighter runs.
+  return text.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
 }
-
+  
 function highlightSources(answer, chunks) {
   if (!chunks || chunks.length === 0) return answer.replace(/\n/g, "<br/>");
 
