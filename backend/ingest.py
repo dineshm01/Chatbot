@@ -23,7 +23,7 @@ def extract_questions(text):
     questions = re.findall(r"\d+\..*?\?", text, flags=re.DOTALL)
     return [q.strip() for q in questions]
 
-def ingest_document(file_path):
+def ingest_document(file_path, user_id=None):    
     # 1. Load with Slide-Level Precision
     # We must ensure each slide is treated as a separate page to avoid "mashing"
     from langchain_community.document_loaders import UnstructuredPowerPointLoader
@@ -56,6 +56,7 @@ def ingest_document(file_path):
     # Save locally so get_retriever() can find it
     vectorstore.save_local("faiss_index")
     return True
+
 
 
 
