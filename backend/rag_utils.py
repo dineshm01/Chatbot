@@ -39,12 +39,11 @@ def load_vectorstore():
         
 def get_retriever():
     vectorstore = load_vectorstore()
-    if not vectorstore:
-        return None
     return vectorstore.as_retriever(
         search_kwargs={
-            "k": 15 , # Reduced from 20 to stop 'stuffing' the answer with irrelevant slides
-            "fetch_k": 30
+            "k": 15,        # Pull 15 chunks to reach later slides
+            "fetch_k": 50,  # Scan 50 chunks globally to find all GAN types
+            "lambda_mult": 0.5 # Ensures diversity in the slides retrieved
         }
     )
     
@@ -108,6 +107,7 @@ def compute_coverage(docs, answer=None, threshold=80):
 
     grounded_pct = int((grounded_count / len(fragments)) * 100)
     return {"grounded": grounded_pct, "general": 100 - grounded_pct}
+
 
 
 
