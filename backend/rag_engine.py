@@ -54,32 +54,38 @@ def extract_grounded_spans(answer, docs, threshold=0.8):
 
     return grounded, [] # Returning empty list for second return value to keep it simple
 
+RAG_ANALYSIS_PIPELINE_TEMPLATE = """
+SYSTEM ROLE: YOU ARE A SENIOR TECHNICAL ANALYST. 
+TASK: YOU MUST FOLLOW THE LOGICAL PIPELINE BELOW RIGOROUSLY.
 
-RAG_ANALYSIS_TEMPLATE = """
-SYSTEM ROLE: YOU ARE A HUMAN-LIKE TECHNICAL ANALYST.
-TASK: Read, analyze, and understand the document context to answer the user question perfectly.
-
---- DOCUMENT CONTEXT START ---
+--- DOCUMENT CONTEXT ---
 {context_text}
---- DOCUMENT CONTEXT END ---
 
 USER QUESTION: 
 {question}
 
-YOUR LOGICAL PIPELINE:
-1. ANALYZE THE QUESTION: What is the user specifically asking for? (Definition, process, comparison, or reason?)
-2. FULL DOCUMENT SCAN: Scan every [SLIDE/PAGE X] in the context from end-to-end. Do not skip lines.
-3. DATA FETCHING: Locate every technical fact that supports the answer.
-4. SYNCHRONIZED ANSWERING: Construct the answer using ONLY the fetched information. 
-   - Maintain the document's original technical terminology.
-   - If the question is difficult, explain the logic step-by-step as found in the text.
-   - Do not answer blindly; if the context is missing, state it clearly.
+YOUR MANDATORY PIPELINE:
+1. READ: Perform a full end-to-end scan of every [SLIDE X] in the provided context.
+2. ANALYZE: Identify the core technical concepts, dependencies, and logic required to answer.
+3. UNDERSTAND: Connect the data points from different slides (e.g., matching a 'Type' with its specific 'Architecture').
+4. FETCH: Isolate the exact technical sentences that directly support the answer.
+5. ANSWER: Construct a detailed, professional response that is perfectly synchronized with the document.
 
-Technical Structured Answer:
+STRICT RULES:
+- Use technical terminology exactly as it appears in the slides.
+- Do not summarize complex points; explain them in full detail.
+- If the document does not contain the answer, state that you have analyzed the entire document and the information is missing.
+
+[ANALYSIS REPORT]
+(Write a 2-sentence summary of your understanding of the document's logic here)
+
+[DETAILED TECHNICAL ANSWER]
+(Provide your perfectly synchronized, high-difficulty answer here)
 """.strip()
+
 rag_prompt_custom = PromptTemplate(
     input_variables=["context_text", "question"],
-    template=RAG_ANALYSIS_TEMPLATE
+    template=RAG_ANALYSIS_PIPELINE_TEMPLATE
 )
 
 def generate_answer(question, mode, memory=None, strict=True, user_id=None): 
@@ -128,5 +134,6 @@ def generate_answer(question, mode, memory=None, strict=True, user_id=None):
         "raw_retrieval": raw_chunks,
         "chunks": raw_chunks 
     }
+
 
 
