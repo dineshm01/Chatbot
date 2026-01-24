@@ -11,24 +11,22 @@ def load_vectorstore():
         return FAISS.load_local(index_path, embeddings, allow_dangerous_deserialization=True)
     return None
 
+
 def get_retriever():
-    """
-    THE PERFECTION FIX: Uses MMR to ensure the bot reads the entire PPTX depth.
-    This prevents the bot from getting stuck on Slide 1.
-    """
     vectorstore = load_vectorstore()
     if not vectorstore:
         return None
     
+    # We increase 'k' significantly to ensure the 'Entire Document' is represented
     return vectorstore.as_retriever(
-        search_type="mmr", 
+        search_type="mmr", # MMR prevents the bot from being 'blind' to diverse facts
         search_kwargs={
-            "k": 15,            # Retrieves 15 diverse slides
-            "fetch_k": 50,      # Scans 50 chunks to find all GAN types
-            "lambda_mult": 0.6  # Balances relevance with technical diversity
+            "k": 20,            # Fetches up to 20 distinct chunks from the doc
+            "fetch_k": 100,     # Scans 100 segments to ensure nothing is missed
+            "lambda_mult": 0.4  # Forces the highest level of information diversity
         }
     )
-
+    
 def truncate_docs(docs, max_chars=12000):
     """
     STRUCTURAL TRUNCATION: Prevents logical 'mashing' errors.
@@ -62,3 +60,4 @@ def compute_coverage(docs, answer):
     """Calculates how much of the answer is supported by retrieved chunks."""
     # Placeholder for your existing coverage logic
     return 100 if len(docs) > 0 else 0
+
