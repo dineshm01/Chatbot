@@ -54,27 +54,32 @@ def extract_grounded_spans(answer, docs, threshold=0.8):
 
     return grounded, [] # Returning empty list for second return value to keep it simple
 
-RAG_PERFECTION_TEMPLATE = """
-YOU ARE A TECHNICAL EXTRACTION ENGINE.
-DOCUMENT CONTEXT:
+
+RAG_ANALYSIS_TEMPLATE = """
+SYSTEM ROLE: YOU ARE A HUMAN-LIKE TECHNICAL ANALYST.
+TASK: Read, analyze, and understand the document context to answer the user question perfectly.
+
+--- DOCUMENT CONTEXT START ---
 {context_text}
+--- DOCUMENT CONTEXT END ---
 
 USER QUESTION: 
 {question}
 
-STRICT OPERATING RULES:
-1. READ every word of the provided CONTEXT before answering.
-2. If the answer involves multiple parts (e.g., 'What are the types?'), you must find and list EVERY part mentioned in the context.
-3. DO NOT summarize. Copy the technical definitions exactly as they are written.
-4. If a logical connection is not explicitly stated in the context, do not invent one.
-5. If the context is insufficient to answer perfectly, say: "The document does not contain enough data for a perfect answer."
+YOUR LOGICAL PIPELINE:
+1. ANALYZE THE QUESTION: What is the user specifically asking for? (Definition, process, comparison, or reason?)
+2. FULL DOCUMENT SCAN: Scan every [SLIDE/PAGE X] in the context from end-to-end. Do not skip lines.
+3. DATA FETCHING: Locate every technical fact that supports the answer.
+4. SYNCHRONIZED ANSWERING: Construct the answer using ONLY the fetched information. 
+   - Maintain the document's original technical terminology.
+   - If the question is difficult, explain the logic step-by-step as found in the text.
+   - Do not answer blindly; if the context is missing, state it clearly.
 
-TECHNICAL RESPONSE:
+Technical Structured Answer:
 """.strip()
-
 rag_prompt_custom = PromptTemplate(
     input_variables=["context_text", "question"],
-    template=RAG_PERFECTION_TEMPLATE
+    template=RAG_ANALYSIS_TEMPLATE
 )
 
 def generate_answer(question, mode, memory=None, strict=True, user_id=None): 
@@ -123,4 +128,5 @@ def generate_answer(question, mode, memory=None, strict=True, user_id=None):
         "raw_retrieval": raw_chunks,
         "chunks": raw_chunks 
     }
+
 
