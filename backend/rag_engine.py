@@ -54,54 +54,73 @@ def extract_grounded_spans(answer, docs, threshold=0.8):
 
     return grounded, [] # Returning empty list for second return value to keep it simple
 
-from langchain.prompts import PromptTemplate
-
-# Define a template that enforces "Full Document" analysis
-RAG_FULL_SCAN_TEMPLATE = """
-TECHNICAL CONTEXT FROM ALL RETRIEVED SLIDES:
+# 1. DYNAMIC PROMPT TEMPLATE
+# Enforces strict technical extraction and slide isolation
+RAG_GUIDE_TEMPLATE = """
+TECHNICAL CONTEXT FROM SLIDES:
 {context_text}
 
 USER QUESTION: 
 {question}
 
-STRICT EXTRACTION RULES:
-1. Do not stop at the first slide. Scan all provided CONTEXT for relevant facts.
-2. If the user asks for 'Types', you must look for every slide title that contains a GAN variation (e.g., DCGAN, SRGAN, Cycle GAN, InfoGAN).
-3. Copy the specific technical definitions for EACH type exactly as they appear in the slides.
-4. Provide a structured answer using bullet points for each different slide found.
+STRICT TECHNICAL RULES:
+1. Extract ONLY information that directly answers the USER QUESTION.
+2. If the user asks for 'Types', identify and list each architecture (e.g., DCGAN, SRGAN, Cycle GAN, InfoGAN) as a separate heading.
+3. For each type, copy the exact technical sentences describing its architecture and purpose.
+4. IMMEDIATELY DISCARD any general background, history, or author names unless specifically asked.
+5. Copy sentences EXACTLY as they appear. Do not paraphrase or summarize.
 
 Focused Technical Answer:
 """.strip()
 
 rag_prompt_custom = PromptTemplate(
     input_variables=["context_text", "question"],
-    template=RAG_FULL_SCAN_TEMPLATE
+    template=RAG_GUIDE_TEMPLATE
 )
 
 def generate_answer(question, mode, memory=None, strict=True, user_id=None): 
+    # 2. RETRIEVAL (Ensure k=15 is set in rag_utils.py)
     retriever = get_retriever()
-    # Pulling more docs (k=15) ensures we reach the later pages of the PPTX
     docs = retriever.invoke(question) if retriever else []
 
     if not docs:
-        return {"text": "No information found.", "chunks": []}
+        return {"text": "No relevant information found in the documents.", "chunks": []}
 
     context_text = truncate_docs(docs)
-    
-    # Formatting the prompt with the wider context
+
+    # 3. DYNAMIC PROMPT GENERATION
     final_prompt = rag_prompt_custom.format(
         context_text=context_text,
         question=question
     )
     
+    # call_llm must use temperature=0.0 to prevent rephrasing
     answer = call_llm(final_prompt)
+    
+    # 4. LOGIC CHECK: Auto-reduction of unrelated topics
+    sentences = re.split(r'(?<=[.!?])\s+', answer.strip())
+    q_keywords = [w.lower() for w in question.split() if len(w) > 3]
+    
+    filtered_sentences = []
+    for s in sentences:
+        if any(kw in s.lower() for kw in q_keywords) or len(filtered_sentences) < 3:
+            filtered_sentences.append(s)
+    
+    final_text = "\n\n".join(filtered_sentences)
+    
+    # 5. SYNCHRONIZED RETURN FOR FRONTEND highlighting
     raw_chunks = [d.page_content for d in docs]
 
     return {
-        "text": answer.strip(),
-        "chunks": raw_chunks,
-        "coverage": compute_coverage(docs, answer),
+        "text": final_text,
         "confidence": compute_confidence(docs),
-        "sources": [{"source": os.path.basename(d.metadata.get("source", "Doc")), 
-                     "page": d.metadata.get("page", "?")} for d in docs]
-    }    
+        "coverage": compute_coverage(docs, final_text),
+        "sources": [
+            {
+                "source": os.path.basename(d.metadata.get("source", "Doc")), 
+                "page": d.metadata.get("page", "?")
+            } for d in docs
+        ],
+        "raw_retrieval": raw_chunks,
+        "chunks": raw_chunks 
+    }
