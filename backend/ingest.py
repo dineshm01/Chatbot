@@ -1,6 +1,5 @@
 from utils.loaders import load_file
 from utils.embeddings import get_embeddings
-from langchain_community.document_loaders import PPTX loader 
 from langchain_community.vectorstores import FAISS
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pymongo import MongoClient
@@ -57,5 +56,6 @@ def ingest_document(file_path):
     # Save locally so get_retriever() can find it
     vectorstore.save_local("faiss_index")
     return True
+
 
 
