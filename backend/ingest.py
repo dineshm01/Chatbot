@@ -50,12 +50,13 @@ def ingest_document(file_path, user_id=None):
             doc.metadata["page"] = doc.metadata["page_number"]
 
     # 4. Create Vector Store with MMR-ready Embeddings
-    embeddings = get_embeddings_model()
+    embeddings = get_embeddings()
     vectorstore = FAISS.from_documents(docs, embeddings)
     
     # Save locally so get_retriever() can find it
     vectorstore.save_local("faiss_index")
     return True
+
 
 
 
