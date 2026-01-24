@@ -31,12 +31,12 @@ def ingest_document(file_path, user_id=None):
     raw_docs = loader.load()
 
     # 2. Optimized Chunking for Technical Content
-    # chunk_size=800 is the "sweet spot" to keep a full slide's technical detail together
-    # chunk_overlap=80 ensures we don't cut a definition in half
+    # Using a larger chunk size allows the AI to see 'Paragraph Logic' 
+    # instead of just 'Sentence Fragments'.
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=800,
-        chunk_overlap=80,
-        separators=["\n\n", "\n", ".", " "]
+        chunk_size=1200,        # Increased to 1200 to keep complex processes together
+        chunk_overlap=150,       # Significant overlap prevents data loss between chunks
+        separators=["\n\n", "\n", ". ", " "]
     )
     
     # 3. Add Contextual Metadata
@@ -56,6 +56,7 @@ def ingest_document(file_path, user_id=None):
     # Save locally so get_retriever() can find it
     vectorstore.save_local("faiss_index")
     return True
+
 
 
 
