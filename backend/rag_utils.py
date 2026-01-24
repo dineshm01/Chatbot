@@ -39,11 +39,18 @@ def load_vectorstore():
         
 def get_retriever():
     vectorstore = load_vectorstore()
+    if not vectorstore:
+        return None
+    
+    # THE RELEVANCY FIX: 
+    # search_type="mmr" ensures the bot doesn't just look at Slide 1.
+    # It forces diversity so you get definitions, types, and logic in one go.
     return vectorstore.as_retriever(
+        search_type="mmr", 
         search_kwargs={
-            "k": 15,        # Pull 15 chunks to reach later slides
-            "fetch_k": 50,  # Scan 50 chunks globally to find all GAN types
-            "lambda_mult": 0.5 # Ensures diversity in the slides retrieved
+            "k": 15,            # Number of chunks to send to the AI
+            "fetch_k": 50,      # Number of chunks to scan in total from the PPTX
+            "lambda_mult": 0.6  # 0.5-0.7 is the "sweet spot" for technical diversity
         }
     )
     
@@ -107,6 +114,7 @@ def compute_coverage(docs, answer=None, threshold=80):
 
     grounded_pct = int((grounded_count / len(fragments)) * 100)
     return {"grounded": grounded_pct, "general": 100 - grounded_pct}
+
 
 
 
