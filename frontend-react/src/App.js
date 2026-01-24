@@ -3,6 +3,8 @@ import Login from "./Login";
 
 function App() {
   const [showDebug, setShowDebug] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [processPhase, setProcessPhase] = useState("");
   const [question, setQuestion] = useState("");
   const [mode, setMode] = useState("Detailed");
   const [loading, setLoading] = useState(false);
@@ -264,29 +266,58 @@ async function deleteAllHistory() {
 }
 
 async function ask() {
+  // 1. Basic validation to prevent empty queries or double-clicking
   if (!question.trim() || loading) return;
+  
   setLoading(true);
-
   const userMessage = { role: "user", text: question };
   setMessages(prev => [...prev, userMessage]);
+  const currentQuestion = question; // Store locally for the fetch
   setQuestion("");
 
   try {
-    const memory = messages.slice(-6);
+    // --- START HUMAN-LIKE PIPELINE ---
+    
+    // PHASE 1: Reading
+    setProcessPhase("📖 Reading the entire document end-to-end...");
+    
+    // Use timeouts to simulate the real time a human takes to analyze parts
+    // Phase 2: Analyzing
+    const analysisTimer = setTimeout(() => {
+        setProcessPhase("🧐 Analyzing every part of the document structure...");
+    }, 1200);
+    
+    // Phase 3: Understanding
+    const understandingTimer = setTimeout(() => {
+        setProcessPhase("🧠 Understanding the technical context and logic...");
+    }, 2800);
+
+    // 2. Perform the actual backend request
     const res = await fetch(`${API}/api/ask`, {
       method: "POST",
       headers: authHeaders(),
-      body: JSON.stringify({ question, mode, memory, strict: true }) 
+      body: JSON.stringify({ 
+          question: currentQuestion, 
+          mode, 
+          memory: messages.slice(-6), 
+          strict: true 
+      }) 
     });
+
+    // Clear simulated timers once real data returns
+    clearTimeout(analysisTimer);
+    clearTimeout(understandingTimer);
 
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Server error");
 
+    setProcessPhase("✅ Finalizing synchronized answer...");
+
+    // 3. Construct the bot message with high-quality highlights
     const botMessage = {
       id: data.id,
       role: "bot",
-      // We pass data.chunks here to ensure the highlighter has data
-      text: highlightSources(data.text, data.chunks), 
+      text: highlightSources(data.text, data.chunks), // Syncs highlights with document
       confidence: data.confidence,
       coverage: data.coverage,
       sources: data.sources,
@@ -297,10 +328,12 @@ async function ask() {
     };
 
     setMessages(prev => [...prev, botMessage]);
+
   } catch (err) {
-    setMessages(prev => [...prev, { role: "bot", text: `⚠️ ${err.message}` }]);
+    setMessages(prev => [...prev, { role: "bot", text: `⚠️ Error during analysis: ${err.message}` }]);
   } finally {
     setLoading(false);
+    setProcessPhase(""); // Reset for next interaction
   }
 }
   
@@ -609,13 +642,16 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
           {loading && (
             <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: "10px" }}>
               <div style={{
-                padding: "10px 14px",
+                padding: "12px 18px",
                 borderRadius: "12px",
-                background: "#e5e7eb",
-                color: "black",
-                fontStyle: "italic"
+                background: "#f0f7ff",
+                color: "#2563eb",
+                fontWeight: "bold",
+                fontSize: "14px",
+                borderLeft: "5px solid #2563eb",
+                boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)"
               }}>
-                Bot is typing...
+                {processPhase}
               </div>
             </div>
           )}
