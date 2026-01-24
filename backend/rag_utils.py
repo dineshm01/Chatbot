@@ -54,14 +54,37 @@ def get_retriever():
         }
     )
     
-def truncate_docs(docs, max_chars=1500):
-    text = ""
-    for d in docs:
-        if len(text) + len(d.page_content) > max_chars:
-            break
-        text += d.page_content + "\n"
-    return text.strip()
+# In backend/rag_utils.py
 
+def truncate_docs(docs, max_chars=12000):
+    """
+    Formats retrieved slides into a structured text block for the AI.
+    Ensures that technical headers and page references are preserved.
+    """
+    context_parts = []
+    current_length = 0
+
+    for i, doc in enumerate(docs):
+        # 1. Extract metadata for "Full Sync" with the document
+        source = os.path.basename(doc.metadata.get("source", "Unknown"))
+        page = doc.metadata.get("page", i + 1)
+        content = doc.page_content.strip()
+
+        # 2. Format with clear structural boundaries
+        # This prevents the AI from "mashing" unrelated slides together
+        formatted_chunk = f"--- [SLIDE {page} | {source}] ---\n{content}\n"
+        
+        chunk_len = len(formatted_chunk)
+        
+        # 3. Dynamic Truncation: Only stop if we exceed the high-capacity limit
+        if current_length + chunk_len > max_chars:
+            break
+            
+        context_parts.append(formatted_chunk)
+        current_length += chunk_len
+
+    return "\n".join(context_parts)
+    
 def compute_confidence(docs):
     """
     Verified Confidence Logic for Strict LangChain RAG.
@@ -114,6 +137,7 @@ def compute_coverage(docs, answer=None, threshold=80):
 
     grounded_pct = int((grounded_count / len(fragments)) * 100)
     return {"grounded": grounded_pct, "general": 100 - grounded_pct}
+
 
 
 
