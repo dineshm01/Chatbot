@@ -38,7 +38,10 @@ def truncate_docs(docs, max_chars=12000):
     for i, doc in enumerate(docs):
         source = os.path.basename(doc.metadata.get("source", "Unknown"))
         # Syncs page numbers for perfect highlighting
-        page = doc.metadata.get("page", i + 1)
+        page = (doc.metadata.get("page") or 
+                doc.metadata.get("page_number") or 
+                doc.metadata.get("index") or 
+                (i + 1))
         content = doc.page_content.strip()
 
         # Added structural headers to fix the 'Wrong Answer' logic
@@ -60,4 +63,5 @@ def compute_coverage(docs, answer):
     """Calculates how much of the answer is supported by retrieved chunks."""
     # Placeholder for your existing coverage logic
     return 100 if len(docs) > 0 else 0
+
 
