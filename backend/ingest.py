@@ -34,8 +34,8 @@ def ingest_document(file_path, user_id=None):
     # Using a larger chunk size allows the AI to see 'Paragraph Logic' 
     # instead of just 'Sentence Fragments'.
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1200,        # Increased to 1200 to keep complex processes together
-        chunk_overlap=150,       # Significant overlap prevents data loss between chunks
+        chunk_size=1500,        # Increased to 1200 to keep complex processes together
+        chunk_overlap=250,       # Significant overlap prevents data loss between chunks
         separators=["\n\n", "\n", ". ", " "]
     )
     
@@ -56,6 +56,7 @@ def ingest_document(file_path, user_id=None):
     # Save locally so get_retriever() can find it
     vectorstore.save_local("faiss_index")
     return True
+
 
 
 
