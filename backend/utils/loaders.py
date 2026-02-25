@@ -29,32 +29,24 @@ def load_file(file_path):
     else:
         raise ValueError(f"Unsupported file type: {ext}")
 
-
 def load_pptx_with_pages(file_path):
-    """
-    ADVANCED LOADER: Captures slide numbers AND extracts text from 
-    embedded images/diagrams via OCR.
-    """
     prs = Presentation(file_path)
     documents = []
     
     for i, slide in enumerate(prs.slides):
         combined_text = []
+        has_text = False
         
         for shape in slide.shapes:
-            # 1. Capture standard text boxes
-            if hasattr(shape, "text"):
+            if hasattr(shape, "text") and shape.text.strip():
                 combined_text.append(shape.text)
+                has_text = True # Mark that this slide already has text
             
-            # 2. THE FIX: Capture text inside images/diagrams
-            # (Checking for PICTURE or GRAPHIC_FRAME types)
-            elif shape.shape_type == 13: # 13 is the constant for a Picture
+            # THE SPEED FIX: Only run OCR if the slide has very little or no text
+            elif shape.shape_type == 13 and not has_text: 
                 try:
                     image_bytes = shape.image.blob
-                    # Create a temporary in-memory file for your OCR function
                     image_stream = io.BytesIO(image_bytes)
-                    
-                    # Run your existing OCR logic on the embedded image
                     image_doc = load_image_with_ocr_from_stream(image_stream)
                     if image_doc[0].page_content.strip():
                         combined_text.append(f"[Image Content: {image_doc[0].page_content}]")
@@ -62,6 +54,7 @@ def load_pptx_with_pages(file_path):
                     print(f"DEBUG: Failed to OCR image on slide {i+1}: {e}")
 
         content = "\n".join(combined_text)
+
         if content.strip():
             documents.append(Document(
                 page_content=content,
@@ -106,5 +99,6 @@ def estimate_ocr_confidence(text):
         return 0.5
     else:
         return 0.8
+
 
 
