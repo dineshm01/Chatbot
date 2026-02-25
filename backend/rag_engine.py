@@ -55,8 +55,9 @@ def extract_grounded_spans(answer, docs, threshold=0.8):
     return grounded, [] # Returning empty list for second return value to keep it simple
 
 RAG_ANALYSIS_PIPELINE_TEMPLATE = """
-SYSTEM ROLE: YOU ARE A SENIOR TECHNICAL ANALYST. 
-TASK: EXPLAIN THE TECHNICAL CONCEPTS FROM THE DOCUMENT IN GREAT DETAIL.
+You are a technical AI assistant. Use the following pieces of retrieved context to answer the question. 
+If the answer is not in the context, strictly state that the information is not available in the document. 
+Do not use outside knowledge. Provide a detailed, bulleted response if appropriate.
 
 --- DOCUMENT CONTEXT ---
 {context_text}
@@ -64,14 +65,8 @@ TASK: EXPLAIN THE TECHNICAL CONCEPTS FROM THE DOCUMENT IN GREAT DETAIL.
 USER QUESTION: 
 {question}
 
-INSTRUCTIONS:
-1. USE BULLET POINTS for technical features or steps.
-2. If the document mentions an architecture (like 'Generator' or 'Discriminator'), explain its specific role as per the slides.
-3. If the answer is not in the context, say: "Based on my analysis of the uploaded document, this information is not available."
-4. KEEP TECHNICAL TERMS EXACT: Do not simplify terms like 'backpropagate' or 'transposed convolutions'.
-
 [ANALYSIS REPORT]
-(Briefly summarize which slides contain the answer)
+(Briefly note which slides/pages were used)
 
 [DETAILED TECHNICAL ANSWER]
 """.strip()
@@ -82,7 +77,7 @@ rag_prompt_custom = PromptTemplate(
 )
 
 def generate_answer(question, mode, memory=None, strict=True, user_id=None): 
-    # 2. RETRIEVAL (Ensure k=15 is set in rag_utils.py)
+    # 2. RETRIEVAL
     retriever = get_retriever()
     docs = retriever.invoke(question) if retriever else []
 
@@ -97,21 +92,14 @@ def generate_answer(question, mode, memory=None, strict=True, user_id=None):
         question=question
     )
     
-    # call_llm must use temperature=0.0 to prevent rephrasing
+    # call_llm uses temperature=0.0 for consistency
     answer = call_llm(final_prompt)
     
-    # 4. LOGIC CHECK: Auto-reduction of unrelated topics
-    sentences = re.split(r'(?<=[.!?])\s+', answer.strip())
-    q_keywords = [w.lower() for w in question.split() if len(w) > 3]
+    # 4. FIX: Removed the "filtered_sentences" logic that was cutting off 
+    # detailed answers. This now returns the full response from the LLM.
+    final_text = answer.strip()
     
-    filtered_sentences = []
-    for s in sentences:
-        if any(kw in s.lower() for kw in q_keywords) or len(filtered_sentences) < 3:
-            filtered_sentences.append(s)
-    
-    final_text = "\n\n".join(filtered_sentences)
-    
-    # 5. SYNCHRONIZED RETURN FOR FRONTEND highlighting
+    # 5. SYNCHRONIZED RETURN FOR FRONTEND
     raw_chunks = [d.page_content for d in docs]
 
     return {
