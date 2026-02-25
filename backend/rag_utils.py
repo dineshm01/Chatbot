@@ -19,8 +19,8 @@ def get_retriever():
     return vectorstore.as_retriever(
         search_type="mmr", 
         search_kwargs={
-            "k": 15,            # Number of final chunks to send to LLM
-            "fetch_k": 50,      # Number of chunks to initially pool
+            "k": 10,            # Number of final chunks to send to LLM
+            "fetch_k": 30,      # Number of chunks to initially pool
             "lambda_mult": 0.5  # 0.5 is the "sweet spot" for technical diversity
         }
     )
@@ -61,6 +61,7 @@ def compute_coverage(docs, answer):
     """Calculates how much of the answer is supported by retrieved chunks."""
     # Placeholder for your existing coverage logic
     return 100 if len(docs) > 0 else 0
+
 
 
 
