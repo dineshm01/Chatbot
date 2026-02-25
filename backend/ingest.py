@@ -27,7 +27,7 @@ def ingest_document(file_path, user_id=None):
     # 1. Load with Slide-Level Precision
     # We must ensure each slide is treated as a separate page to avoid "mashing"
     from langchain_community.document_loaders import UnstructuredPowerPointLoader
-    loader = UnstructuredPowerPointLoader(file_path, mode="elements")
+    loader = UnstructuredPowerPointLoader(file_path, mode="elements", strategy="fast")
     raw_docs = loader.load()
 
     # 2. Optimized Chunking for Technical Content
@@ -56,6 +56,7 @@ def ingest_document(file_path, user_id=None):
     # Save locally so get_retriever() can find it
     vectorstore.save_local("faiss_index")
     return True
+
 
 
 
