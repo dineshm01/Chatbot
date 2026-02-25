@@ -11,19 +11,17 @@ def load_vectorstore():
         return FAISS.load_local(index_path, embeddings, allow_dangerous_deserialization=True)
     return None
 
-
 def get_retriever():
     vectorstore = load_vectorstore()
     if not vectorstore:
         return None
     
-    # We increase 'k' significantly to ensure the 'Entire Document' is represented
     return vectorstore.as_retriever(
-        search_type="mmr", # MMR prevents the bot from being 'blind' to diverse facts
+        search_type="mmr", 
         search_kwargs={
-            "k": 20,            # Fetches up to 20 distinct chunks from the doc
-            "fetch_k": 100,     # Scans 100 segments to ensure nothing is missed
-            "lambda_mult": 0.4  # Forces the highest level of information diversity
+            "k": 15,            # Number of final chunks to send to LLM
+            "fetch_k": 50,      # Number of chunks to initially pool
+            "lambda_mult": 0.5  # 0.5 is the "sweet spot" for technical diversity
         }
     )
     
@@ -63,5 +61,6 @@ def compute_coverage(docs, answer):
     """Calculates how much of the answer is supported by retrieved chunks."""
     # Placeholder for your existing coverage logic
     return 100 if len(docs) > 0 else 0
+
 
 
