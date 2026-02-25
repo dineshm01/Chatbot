@@ -7,7 +7,6 @@ function App() {
   const [processPhase, setProcessPhase] = useState("");
   const [question, setQuestion] = useState("");
   const [mode, setMode] = useState("Detailed");
-  const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState([]);
   const chatEndRef = useRef(null);
   const [showHistoryPanel, setShowHistoryPanel] = useState(false);
