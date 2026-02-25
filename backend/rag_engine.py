@@ -56,7 +56,7 @@ def extract_grounded_spans(answer, docs, threshold=0.8):
 
 RAG_ANALYSIS_PIPELINE_TEMPLATE = """
 SYSTEM ROLE: YOU ARE A SENIOR TECHNICAL ANALYST. 
-TASK: YOU MUST FOLLOW THE LOGICAL PIPELINE BELOW RIGOROUSLY.
+TASK: EXPLAIN THE TECHNICAL CONCEPTS FROM THE DOCUMENT IN GREAT DETAIL.
 
 --- DOCUMENT CONTEXT ---
 {context_text}
@@ -64,23 +64,16 @@ TASK: YOU MUST FOLLOW THE LOGICAL PIPELINE BELOW RIGOROUSLY.
 USER QUESTION: 
 {question}
 
-YOUR MANDATORY PIPELINE:
-1. READ: Perform a full end-to-end scan of every [SLIDE X] in the provided context.
-2. ANALYZE: Identify the core technical concepts, dependencies, and logic required to answer.
-3. UNDERSTAND: Connect the data points from different slides (e.g., matching a 'Type' with its specific 'Architecture').
-4. FETCH: Isolate the exact technical sentences that directly support the answer.
-5. ANSWER: Construct a detailed, professional response that is perfectly synchronized with the document.
-
-STRICT RULES:
-- Use technical terminology exactly as it appears in the slides.
-- Do not summarize complex points; explain them in full detail.
-- If the document does not contain the answer, state that you have analyzed the entire document and the information is missing.
+INSTRUCTIONS:
+1. USE BULLET POINTS for technical features or steps.
+2. If the document mentions an architecture (like 'Generator' or 'Discriminator'), explain its specific role as per the slides.
+3. If the answer is not in the context, say: "Based on my analysis of the uploaded document, this information is not available."
+4. KEEP TECHNICAL TERMS EXACT: Do not simplify terms like 'backpropagate' or 'transposed convolutions'.
 
 [ANALYSIS REPORT]
-(Write a 2-sentence summary of your understanding of the document's logic here)
+(Briefly summarize which slides contain the answer)
 
 [DETAILED TECHNICAL ANSWER]
-(Provide your perfectly synchronized, high-difficulty answer here)
 """.strip()
 
 rag_prompt_custom = PromptTemplate(
@@ -134,6 +127,7 @@ def generate_answer(question, mode, memory=None, strict=True, user_id=None):
         "raw_retrieval": raw_chunks,
         "chunks": raw_chunks 
     }
+
 
 
 
