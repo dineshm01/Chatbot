@@ -25,6 +25,8 @@ rapidfuzz==3.6.1
 reportlab
 pyjwt==2.8.0
 bcrypt==4.1.2
+gunicorn
+
 
 
 
