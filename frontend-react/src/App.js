@@ -366,7 +366,19 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
         maxWidth: "700px",
         boxShadow: "0 10px 20px rgba(0,0,0,0.08)"
       }}>
-        <h2 style={{ textAlign: "center" }}>RAG Chatbot</h2>
+        <div style={{ textAlign: "center", marginBottom: "20px" }}>
+          <h1 style={{ margin: "0", color: "#2563eb" }}>
+            AI Document RAG Chatbot
+          </h1>
+
+          <p style={{
+            fontSize: "14px",
+            color: "#666",
+            marginTop: "6px"
+          }}>
+            Upload documents and ask AI-powered questions using Retrieval Augmented Generation
+          </p>
+        </div>
 
         <textarea
           rows={4}
@@ -536,6 +548,15 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
         </button>
 
         <div style={{ marginTop: "24px" }}>
+          {messages.length === 0 && (
+            <div style={{
+              textAlign: "center",
+              color: "#888",
+              marginTop: "20px"
+            }}>
+              <p>💬 Start by uploading a document or asking a question.</p>
+            </div>
+          )}
           {messages.map((m, i) => (
           <div
             key={i}
@@ -807,6 +828,14 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
             <button onClick={() => setShowAnalytics(false)}>Close</button>
           </div>
         )}
+          <footer style={{
+            marginTop: "40px",
+            textAlign: "center",
+            fontSize: "12px",
+            color: "#888"
+          }}>
+            © 2026 AI Document RAG Chatbot | Built with React + Flask + FAISS
+          </footer>
     </div>
   );
 }
