@@ -353,8 +353,8 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
     <div style={{
       minHeight: "100vh",
       display: "flex",
-      justifyContent: "center",
-      alignItems: "flex-start",
+      flexDirection: "column",
+      alignItems: "center",
       background: "#f3f4f6",
       paddingTop: "40px"
     }}>
