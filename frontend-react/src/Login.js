@@ -31,9 +31,25 @@ export default function Login({ onLogin }) {
   return (
     <div style={styles.page}>
       <div style={styles.card}>
-        <h2 style={styles.title}>{isRegister ? "Create Account" : "Welcome Back"}</h2>
+        <h1 style={{marginBottom:"10px", textAlign:"center"}}>
+        AI Document RAG Chatbot
+        </h1>
+
+        <p style={{
+          fontSize:"14px",
+          color:"#555",
+          textAlign:"center",
+          marginBottom:"20px"
+        }}>
+        Upload documents and ask questions using AI powered Retrieval Augmented Generation.
+        </p>
+
+        <h2 style={styles.title}>
+        {isRegister ? "Create Account" : "Welcome Back"}
+        </h2>
+
         <p style={styles.subtitle}>
-          {isRegister ? "Register to continue" : "Login to continue"}
+        {isRegister ? "Register to continue" : "Login to continue"}
         </p>
 
         <input
@@ -68,6 +84,14 @@ export default function Login({ onLogin }) {
           {isRegister ? "Already have an account? Login" : "New here? Create account"}
         </button>
       </div>
+      <footer style={{
+          position:"absolute",
+          bottom:"20px",
+          fontSize:"12px",
+          color:"#eee"
+        }}>
+          © 2026 Dinesh AI Systems | Privacy Policy | Terms
+      </footer>
     </div>
   );
 }
