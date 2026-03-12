@@ -681,6 +681,7 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
 
       <footer style={{
           marginTop: "40px",
+          marginBottom: "20px",
           textAlign: "center",
           fontSize: "12px",
           color: "#888"
