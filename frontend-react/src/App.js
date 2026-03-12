@@ -826,16 +826,16 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
               ))}
             </ul>
             <button onClick={() => setShowAnalytics(false)}>Close</button>
-            <footer style={{
-              marginTop: "40px",
-              textAlign: "center",
-              fontSize: "12px",
-              color: "#888"
-            }}>
-              © 2026 AI Document RAG Chatbot | Built with React + Flask + FAISS
-          </footer>
           </div>
         )}
+     <footer style={{
+        marginTop: "40px",
+        textAlign: "center",
+        fontSize: "12px",
+        color: "#888"
+      }}>
+        © 2026 AI Document RAG Chatbot | Built with React + Flask + FAISS
+    </footer>
     </div>
   );
 }
