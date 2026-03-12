@@ -379,15 +379,7 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
             Upload documents and ask AI-powered questions using Retrieval Augmented Generation
           </p>
         </div>
-        <footer style={{
-          marginTop: "40px",
-          textAlign: "center",
-          fontSize: "12px",
-          color: "#888"
-        }}>
-          © 2026 AI Document RAG Chatbot | Built with React + Flask + FAISS
-        </footer>
-
+              
         <textarea
           rows={4}
           value={question}
@@ -686,7 +678,16 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
           <div ref={chatEndRef} />
         </div>
       </div>
-      
+
+      <footer style={{
+          marginTop: "40px",
+          textAlign: "center",
+          fontSize: "12px",
+          color: "#888"
+      }}>
+          © 2026 AI Document RAG Chatbot | Built with React + Flask + FAISS
+      </footer>
+
       {showHistoryPanel && (
         <div style={{
           position: "fixed",
