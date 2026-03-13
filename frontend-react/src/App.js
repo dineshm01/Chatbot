@@ -478,6 +478,7 @@ if (!token || token === "undefined" || token === "null" || token.length < 10) {
             {uploading ? "⌛ Processing..." : "📁 Upload Document"}
             <input
               type="file"
+              accept=".pdf,.docx,.ppt,.pptx,.png,.jpg,.jpeg"
               onChange={uploadFile}
               disabled={uploading}
               style={{ display: "none" }} 
