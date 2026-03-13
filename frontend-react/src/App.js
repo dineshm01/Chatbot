@@ -187,10 +187,11 @@ async function uploadFile(e) {
     e.target.value = null; 
     
     // 2. If you are in Strict Mode, the UI will now know documents exist
-    setMessages(prev => [...prev, { 
-      role: "bot", 
-      text: "✅ Document processed. You can now ask questions about it!" 
-    }]);
+    setMessages(prev => [
+      ...prev,
+      { role: "bot", text: "✅ Document processed." },
+      { role: "bot", text: "📊 If the document contains diagrams or charts, I can explain them automatically. Try asking: 'Explain the diagram in the document.'" }
+    ]);
     // ----------------------------
 
   } catch (err) {
